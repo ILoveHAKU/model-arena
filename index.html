@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="vCbV27lNddaY7lGxh4SLUK">
+<head data-page-node-id="gNBxcmmeY7xQxTa4KVrJAB">
+<meta charset="UTF-8" data-page-node-id="UCBTHwOnLsWdDxYFC2zFzY">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="aKFCzvmPGirvOZDzEEM8yq">
+<title>掺水试金石 · 模型真伪检测</title>
+<style>
+  :root{
+    --green:#1d7a4f; --green-dark:#145c3a; --green-light:#e8f4ee;
+    --ink:#1f2937; --sub:#6b7280; --line:#e5e7eb; --bg:#ffffff; --panel:#fafafa;
+    --danger:#c0392b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+  /* ===== 顶栏 ===== */
+  .topbar{display:flex;align-items:center;gap:16px;padding:14px 28px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:700}
+  .brand svg{color:var(--ink)}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .tab{display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;font-size:14px;cursor:pointer;color:var(--sub);border:1px solid transparent;user-select:none}
+  .tab.active{background:var(--green-light);color:var(--green);border-color:#bfe3d0;font-weight:600}
+  .icon-btn{width:34px;height:34px;border:none;background:none;border-radius:50%;cursor:pointer;font-size:16px;color:var(--sub)}
+  .icon-btn:hover{background:#f3f4f6}
+  .action-pill{display:flex;align-items:center;gap:6px;min-height:37px;padding:8px 15px;border-radius:20px;font-size:14px;cursor:pointer;color:var(--sub);border:1px solid var(--line);background:#fff;user-select:none;font-family:inherit;line-height:1;transition:.15s}
+  .action-pill svg{flex-shrink:0}
+  .action-pill:hover{border-color:#bfe3d0;color:var(--green);background:var(--green-light)}
+  .action-pill.danger:hover{border-color:#f0c4bd;color:var(--danger);background:#fdecea}
+  /* ===== 次级栏 ===== */
+  .subbar{display:flex;align-items:center;padding:16px 40px;font-size:13px;color:var(--sub)}
+  .crumbs{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .crumb{color:var(--sub)}
+  .crumb.on{color:var(--green);font-weight:600}
+  .crumb-sep{color:#cbd5e1}
+  /* ===== 主体 ===== */
+  .arena{max-width:1080px;margin:0 auto;padding:8px 40px 40px;display:grid;grid-template-columns:340px 1fr;gap:36px;align-items:start}
+  .img-card{background:#f6f7f6;border-radius:16px;padding:14px;position:relative;min-height:300px;display:flex;align-items:center;justify-content:center}
+  .img-card img{max-width:100%;max-height:420px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.10);display:none}
+  .img-card .placeholder{color:#9ca3af;font-size:13px;text-align:center;line-height:1.9;padding:40px 10px}
+  .img-card .spinner{width:34px;height:34px;border:3px solid #d1d5db;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .expand{position:absolute;right:16px;bottom:16px;width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.9);border:1px solid var(--line);cursor:pointer;display:none;align-items:center;justify-content:center}
+  /* 右侧评审区 */
+  .model-tag{font-size:13px;color:var(--sub);margin-bottom:6px}
+  .model-name{font-size:24px;font-weight:800;margin-bottom:22px}
+  .verdict{display:flex;align-items:center;gap:18px;margin-bottom:24px;min-height:72px}
+  .verdict-face{width:72px;height:72px;border-radius:50%;background:#eef1ee;display:flex;align-items:center;justify-content:center;font-size:38px;flex-shrink:0}
+  .verdict-text{font-size:26px;font-weight:800;color:var(--green)}
+  .score-chip{display:inline-block;margin-left:12px;padding:3px 12px;border-radius:14px;background:var(--green);color:#fff;font-size:14px;font-weight:700;vertical-align:middle}
+  .meta-row{font-size:13px;color:var(--sub);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .meta-row .who{color:var(--green);font-weight:600}
+  .rev-tab{cursor:pointer;padding:2px 8px;border-radius:10px;user-select:none}
+  .rev-tab:hover{background:#f1efe8}
+  .rev-tab.on{background:#eaf3de;color:var(--green);font-weight:600}
+  .rev-tab b{font-weight:600}
+  .rev-sep{color:#cbd5e1}
+  .comment{font-size:14px;line-height:1.9;color:#374151;margin:10px 0 26px;max-width:560px;max-height:130px;overflow-y:auto;word-break:break-word}
+  .comment.err{color:var(--danger);font-size:13px}
+  .usage-row{font-size:12px;color:#9ca3af;margin-bottom:22px}
+  .btn-row{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);transition:.15s}
+  .btn:hover{border-color:#d1d5db;background:#f9fafb}
+  .btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+  .btn.primary:hover{background:var(--green-dark)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  /* ===== 底部画廊 ===== */
+  .gallery-wrap{max-width:1080px;margin:0 auto;padding:0 40px 60px}
+  .stats-row{font-size:13px;color:var(--sub);padding:6px 4px 2px}
+  .stats-row b{color:var(--green)}
+  /* 文本考场 */
+  .probe{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;background:#fff}
+  .probe .p-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .probe .p-icon{font-size:18px}
+  .probe .p-name{font-weight:700;font-size:14px}
+  .probe .p-badge{margin-left:auto;font-size:12px;font-weight:700;padding:2px 10px;border-radius:10px;background:#f3f4f6;color:var(--sub)}
+  .probe .p-badge.ok{background:var(--green-light);color:var(--green)}
+  .probe .p-badge.bad{background:#fdecea;color:var(--danger)}
+  .probe .p-detail{font-size:12.5px;color:var(--sub);line-height:1.8;word-break:break-word}
+  .probe .p-detail b{color:var(--ink)}
+  .exam-summary{border-radius:14px;padding:18px 20px;margin-bottom:18px;font-size:15px;font-weight:700;line-height:1.8}
+  .exam-summary.good{background:var(--green-light);color:var(--green-dark)}
+  .exam-summary.mid{background:#fef7e0;color:#9a6b00}
+  .exam-summary.bad{background:#fdecea;color:var(--danger)}
+  .gallery{display:flex;gap:16px;overflow-x:auto;padding:10px 4px 18px}
+  .g-card{flex:0 0 150px;border:1px solid var(--line);border-radius:14px;padding:10px;cursor:pointer;transition:.15s;background:#fff}
+  .g-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.08)}
+  .g-card.sel{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,122,79,.25)}
+  .g-head{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+  .g-face{width:26px;height:26px;border-radius:50%;background:#eef1ee;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .g-name{font-size:12px;font-weight:700;line-height:1.25;word-break:break-all}
+  .g-thumb{width:100%;height:130px;object-fit:cover;border-radius:8px;background:#f3f4f6}
+  .g-comment{margin-top:8px;font-size:12px;font-weight:600;color:var(--ink);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .g-empty{flex:0 0 100%;text-align:center;color:#9ca3af;font-size:13px;padding:30px 0}
+  /* ===== 设置抽屉 ===== */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+  .drawer{position:fixed;top:0;right:-460px;width:440px;max-width:94vw;height:100vh;background:#fff;box-shadow:-8px 0 30px rgba(0,0,0,.12);z-index:60;transition:right .25s;display:flex;flex-direction:column}
+  .drawer.open{right:0}
+  .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--line);font-weight:700;font-size:16px}
+  .drawer-body{flex:1;overflow-y:auto;padding:20px 24px}
+  .sec-title{font-size:13px;font-weight:700;color:var(--green);margin:18px 0 10px;display:flex;align-items:center;gap:6px}
+  .sec-title:first-child{margin-top:0}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--sub);margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;outline:none}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green)}
+  .hint{font-size:11px;color:#9ca3af;margin-top:4px;line-height:1.6}
+  .test-row{display:flex;align-items:center;gap:10px;margin:4px 0 14px}
+  .btn.small{padding:7px 14px;font-size:12px}
+  .btn.small.danger{color:var(--danger);border-color:#f6d0d0}
+  .btn.small.danger:hover{background:#fdf2f2}
+  .preset-row{display:flex;align-items:center;gap:8px}
+  .preset-row select{flex:1;min-width:0}
+  .preset-row+.preset-row{margin-top:8px}
+  .preset-row .btn{flex:none;white-space:nowrap;height:35px}
+  .preset-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--green);background:#eaf5ef;border-radius:20px;padding:2px 9px}
+  .test-msg{font-size:12px;line-height:1.5;word-break:break-all}
+  .test-msg.ok{color:var(--green);font-weight:600}
+  .test-msg.err{color:var(--danger)}
+  .test-msg.load{color:#9ca3af}
+  .drawer-foot{padding:16px 24px;border-top:1px solid var(--line);display:flex;gap:10px}
+  /* ===== 大图预览 ===== */
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:100;cursor:zoom-out}
+  .lightbox img{max-width:92vw;max-height:92vh;border-radius:12px}
+  /* ===== 能力记录页 ===== */
+  .records-wrap{max-width:1080px;margin:0 auto;padding:8px 40px 60px}
+  .rec-stats{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0 18px}
+  .rec-stat{flex:1;min-width:170px;background:#f6f7f6;border-radius:14px;padding:14px 18px}
+  .rec-stat .num{font-size:26px;font-weight:800;color:var(--green)}
+  .rec-stat .lbl{font-size:12px;color:var(--sub);margin-top:3px;line-height:1.5}
+  .rec-stat.warn .num{color:var(--danger)}
+  .rec-stat.warn{background:#fdf3f2}
+  .filter-chips{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .chip{padding:6px 14px;border-radius:16px;font-size:13px;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--sub);user-select:none}
+  .chip.on{background:var(--green-light);color:var(--green);border-color:#bfe3d0;font-weight:600}
+  .rec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+  .rec-card{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:8px}
+  .rec-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-1px)}
+  .rec-thumb{width:100%;height:150px;object-fit:cover;border-radius:10px;background:#f3f4f6}
+  .rec-thumb.ph{display:flex;align-items:center;justify-content:center;font-size:34px}
+  .rec-title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;min-width:0}
+  .rec-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rec-badge{margin-left:auto;flex-shrink:0;font-size:11px;padding:2px 8px;border-radius:10px;background:#f3f4f6;color:var(--sub)}
+  .rec-badge.img{background:#e8f0fe;color:#1a56b8}
+  .rec-badge.txt{background:#fef3e2;color:#9a6b00}
+  .rec-badge.fail{background:#fdecea;color:var(--danger)}
+  .rec-score-row{display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--sub)}
+  .rec-score{padding:2px 8px;border-radius:8px;background:#f6f7f6}
+  .rec-score b{color:var(--green)}
+  .rec-score b.bad{color:var(--danger)}
+  .rec-comment{font-size:12px;color:var(--sub);line-height:1.6;max-height:58px;overflow:hidden;word-break:break-word}
+  .rec-time{font-size:11px;color:#9ca3af;margin-top:auto}
+  .rec-empty{grid-column:1/-1;text-align:center;color:#9ca3af;font-size:13px;padding:60px 0}
+  /* ===== SVG 源码弹窗 ===== */
+  .svgbox{position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:210;display:none;align-items:center;justify-content:center;padding:5vh 4vw}
+  .svgbox-inner{background:#fff;border-radius:16px;width:100%;max-width:780px;height:76vh;display:flex;flex-direction:column;overflow:hidden}
+  .svgbox-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:700;font-size:14px}
+  .svgbox-head .sp{margin-left:auto;font-size:12px;color:var(--sub);font-weight:400}
+  .svgbox textarea{flex:1;border:none;outline:none;resize:none;padding:16px 18px;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.6;color:var(--ink);background:#fbfbfb;white-space:pre-wrap;word-break:break-all;overflow:auto}
+  .svgbox-foot{display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--line)}
+  .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:200;display:none;max-width:80vw}
+  /* ===== 应用内弹窗（预览 iframe 会屏蔽原生 prompt/confirm） ===== */
+  .uimodal{position:fixed;inset:0;background:rgba(17,24,39,.45);display:none;align-items:center;justify-content:center;z-index:400;padding:20px}
+  .uimodal.open{display:flex}
+  .uimodal-box{background:#fff;border-radius:14px;width:min(92vw,400px);padding:20px 22px;box-shadow:0 20px 50px rgba(0,0,0,.2);animation:uiIn .16s ease-out}
+  @keyframes uiIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+  .uimodal-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:10px}
+  .uimodal-msg{font-size:13px;color:var(--sub);line-height:1.7;margin-bottom:14px;word-break:break-word}
+  .uimodal-box input{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;outline:none;margin-bottom:18px}
+  .uimodal-box input:focus{border-color:var(--green)}
+  .uimodal-foot{display:flex;gap:10px;justify-content:flex-end}
+  .uimodal-foot .btn{min-width:76px;justify-content:center}
+  @media (max-width:900px){.arena{grid-template-columns:1fr}.subbar,.arena,.gallery-wrap{padding-left:20px;padding-right:20px}}
+</style>
+</head>
+<body data-page-node-id="Ju7KpYId1nTsixyZsDvtAO">
+
+<!-- 顶栏 -->
+<div class="topbar" data-page-node-id="RwlHOIRX3HCK5paE6kBEPt">
+  <div class="brand" data-page-node-id="QZE64dMVvv3yGLPDDLPn0e">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="FwSYBSd72I67RK69LMLIsC"><path d="M12 2l2.4 4.8L12 9.6 9.6 6.8 12 2z" fill="currentColor" stroke="none" data-page-node-id="73uHWpDtLGCiRQBs0IoENf"/><path d="M5 8l4 2-4 2-2-2 2-2zM19 8l2 2-2 2-4-2 4-2z" data-page-node-id="V1eCTjSQhEfmD8Xv9e9wu0"/><path d="M12 10v12M7 22h10" data-page-node-id="AONKMBcehEw8kWetEv4Vdl"/></svg>
+    掺水试金石
+  </div>
+  <div class="top-right" data-page-node-id="hWtbYrqFX63W2IpNer5QjG">
+    <div class="tab active" id="tabArena" data-page-node-id="MSvZuh3ofWDFPLLW7jE2AS">🎨 图片考场</div>
+    <div class="tab" id="tabText" data-page-node-id="pTxT8kQw3mNvBhJd5rLuYz">📝 文本考场</div>
+    <div class="tab" id="tabHistory" data-page-node-id="pVAKHQCVE4Uy1fKCWR3AGA">🕘 能力记录</div>
+    <button class="action-pill" title="配置接口" onclick="openDrawer()" data-page-node-id="a1dkj6CSHptwG62xHxgaJA"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>配置</button>
+    <button class="action-pill danger" title="清空记录" onclick="clearHistory()" data-page-node-id="NvXamFitSJY5HMcYyLlKCO"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>清理</button>
+  </div>
+</div>
+
+<!-- 次级栏 -->
+<div class="subbar" data-page-node-id="UuHYSWacGkmRZnTAnR9dkV">
+  <span data-page-node-id="VbVXvXnaaxbQQTLvdxKfCE" id="subbarText">◇ 能力概览 · SVG 出图（本地渲染）</span>
+  <div class="crumbs" data-page-node-id="mU8I9H1WSP5E0Pm2xKNowd">
+    <span class="crumb" id="crumb1" data-page-node-id="fGByWePreNN8D871Cs2LxM">作答</span><span class="crumb-sep" data-page-node-id="Y6B3XRKV2AM3jyEEeP29CX">›</span>
+    <span class="crumb" id="crumb2" data-page-node-id="Q6vzwtbqQhENky3XQZrCzZ">自评</span><span class="crumb-sep" data-page-node-id="JmRVMJdOz43rQoN0ON8Fo1">›</span>
+    <span class="crumb" id="crumb3" data-page-node-id="rmhHPOIEoNG42ZlYkCYPap">再审</span>
+  </div>
+</div>
+
+<!-- 竞技区 -->
+<div class="arena" data-page-node-id="B4hR9ZYDImV20Kh6Ozl7FT">
+  <div class="img-card" id="imgCard" data-page-node-id="6hiZlQSEgn18AZ4MAENXoq">
+    <div class="placeholder" id="placeholder" data-page-node-id="5iEd4szj3KXqPHVM9LPPOe">尚无作品<br data-page-node-id="A91m9TtC5viJFHjkVTN7L1">点击「开始检测」生成<br data-page-node-id="svvlE1CvIs69LCExtYPX6n">默认考题：一只鹈鹕骑自行车</div>
+    <img id="resultImg" alt="生成结果" data-page-node-id="RcUG0Wkd3ZfxFrPnnKMnqm">
+    <div class="expand" id="expandBtn" title="查看大图" data-page-node-id="hM6RGVQklZiZ3pWhZ82chu">⤢</div>
+  </div>
+
+  <div class="detail" data-page-node-id="ze9p7CsyvdBALVA6LQmQym">
+    <div class="model-tag" id="modelTag" data-page-node-id="SQIVY1t6tNFNpflZUAOejt">待考模型</div>
+    <div class="model-name" id="modelName" data-page-node-id="x3L2LbqckhmnxOtpDuVWIM">—</div>
+
+    <div class="verdict" data-page-node-id="XSzIAQaLkg7humiP1zzEc0">
+      <div class="verdict-face" id="verdictFace" data-page-node-id="j26G7fbRlK9JiAAeWLEQc4">🤖</div>
+      <div class="verdict-text" id="verdictText" data-page-node-id="CE2ciBfCkvRASpnQdCQHet">等待作答…</div>
+    </div>
+
+    <div class="meta-row" data-page-node-id="q25LLPjs1GTr17sCRmgGnW">
+      <span class="rev-tab" id="revSelf">自评 <b id="revSelfScore">—</b></span>
+      <span class="rev-sep">·</span>
+      <span class="rev-tab" id="revJudge">再审 <b id="revJudgeScore">—</b></span>
+      <span class="rev-sep">·</span>
+      <span class="rev-tab" id="revFinal">综合 <b id="revFinalScore">—</b></span>
+      <span style="margin-left:auto" class="who" id="judgeName" data-page-node-id="CvP0XUcmtEgiToaYfJkwSK">—</span>
+    </div>
+    <div class="meta-row" data-page-node-id="TekzBo7r7bik9DLuJiNN2x">人工复核&nbsp;&nbsp;<span id="manualNote" data-page-node-id="t0lJnmPqVwSDW2KQyToeEw">自动评审</span></div>
+    <div class="comment" id="commentText" data-page-node-id="ALYNBxaoskL6uRxlJU7PCr">配置好「生成接口」和「评审接口」后即可开考。评审模型将独立对生成图片打分点评。</div>
+    <div class="usage-row" id="usageRow" data-page-node-id="rSaOslGIG7F9QPpOvmxkDC"></div>
+
+    <div class="btn-row" data-page-node-id="si7INNGn82ruPB9DnUOlaC">
+      <button class="btn primary" id="btnGo" onclick="runArena()" data-page-node-id="Lfco48spC0dBc5v02GPn1t">✓ 开始检测</button>
+      <button class="btn" id="btnRetry" onclick="runArena()" disabled data-page-node-id="fOjBJqGFr42McoII5ulgaP">⟳ 重新生成</button>
+      <button class="btn" id="btnRetest" onclick="toggleRetest()">⏱ 自动复测</button>
+      <button class="btn" id="btnSvg" onclick="showSvg()" style="display:none">🧩 查看代码</button>
+      <button class="btn" onclick="openDrawer()" data-page-node-id="9LeqCVJ1PDt9e1OoS1g6Zq">⚙ 接口配置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 底部画廊 -->
+<div class="gallery-wrap" data-page-node-id="DIJsJFgbEbLfDOtbu3lflJ">
+  <div class="stats-row" id="statsRow"></div>
+  <div class="gallery" id="gallery" data-page-node-id="y4Fz0kEqBS97SuR8mFWwEV"><div class="g-empty" data-page-node-id="BkFIG4xDL8ZuuJXR3jMZgv">历史战绩将显示在这里（本地保存最近 12 条）</div></div>
+</div>
+
+<!-- 文本考场 -->
+<div id="textExam" style="display:none">
+  <div class="arena" style="grid-template-columns:1fr">
+    <div style="max-width:760px">
+      <div class="model-tag">文本掺水检测 · 本地判分（评审 Token 消耗为 0）</div>
+      <div class="model-name">📝 文本考场</div>
+      <div class="comment" style="margin-top:0">
+        用 <span id="probeCount">10</span> 道「短提问 + 唯一确定答案」的区分度考题探测模型真实性（数学陷阱 / 推理链 / 编程 / 前端 / SQL / 冷门知识 / 严格指令），外加 3 项免费指纹（Token 计数 / temperature 上限 / logprobs 支持）。
+        全程仅约 <b>500~700 输出 Token</b>，判分在本地完成、无评审消耗。使用「接口配置」里的考生模型与协议（文本走对话端点）。
+      </div>
+      <div class="btn-row" style="margin:18px 0">
+        <button class="btn primary" id="btnTextExam" onclick="runTextExam()">✓ 开始文本检测</button>
+      </div>
+      <div id="probeList"></div>
+    </div>
+  </div>
+  <!-- 文本检测记录（只展示本考场的文本结果） -->
+  <div class="gallery-wrap">
+    <div class="stats-row" id="textStatsRow"></div>
+    <div class="gallery" id="textGallery"><div class="g-empty">文本检测记录将显示在这里（本地保存最近 24 条，完整列表见「能力记录」页）</div></div>
+  </div>
+</div>
+
+<!-- 能力记录页 -->
+<div id="recordsPage" style="display:none">
+  <div class="records-wrap">
+    <div class="rec-stats" id="recStats"></div>
+    <div class="filter-chips" id="recChips">
+      <span class="chip on" data-f="all">全部</span>
+      <span class="chip" data-f="img">🎨 图片检测</span>
+      <span class="chip" data-f="text">📝 文本检测</span>
+      <span class="chip" data-f="fail">💥 失败/异常</span>
+    </div>
+    <div class="rec-grid" id="recGrid"></div>
+  </div>
+</div>
+
+<!-- 设置抽屉 -->
+<div class="overlay" id="overlay" onclick="closeDrawer()" data-page-node-id="LO7l3aTXhiA64KLEgtqbIr"></div>
+<div class="drawer" id="drawer" data-page-node-id="TwmRyWbZK3jWeXQ0i6GTfk">
+  <div class="drawer-head" data-page-node-id="jTpRle6zyr3l7DnBsIxjO4"><span data-page-node-id="3N7knmsYPIuEhgJ8ABjuhO">接口配置</span><button class="icon-btn" onclick="closeDrawer()" data-page-node-id="2YrOXkcImdBNVrG7lL2oMa">✕</button></div>
+  <div class="drawer-body" id="drawerBody" data-page-node-id="9919iLawkoYIJXrqMDVpPi">
+    <div class="sec-title" data-page-node-id="PsetLbl01">💾 配置方案（一键切换）</div>
+    <div class="field">
+      <div class="preset-row">
+        <select id="presetSel" onchange="applyPreset(this.value)" title="选择已保存的配置方案"></select>
+        <button class="btn small" onclick="savePresetAs()" title="把当前填写的配置存为新方案">＋ 另存为</button>
+      </div>
+      <div class="preset-row">
+        <button class="btn small" onclick="updatePreset()" title="用当前填写的内容覆盖所选方案">↻ 更新所选</button>
+        <button class="btn small" onclick="renamePreset()" title="修改所选方案名称">✎ 重命名</button>
+        <button class="btn small danger" onclick="deletePreset()" title="删除所选方案">🗑 删除</button>
+      </div>
+      <div class="hint">把常用的考生 / 评审接口存成方案，之后下拉选一下即可整体切换，不用每次重填。方案只保存在本机浏览器里。</div>
+    </div>
+
+    <div class="sec-title" data-page-node-id="VsQkp2sEI9Tifdo5dsx9IA" id="secGen">🧩 考生模型（只输出 SVG 代码）</div>
+    <div class="field"><label>出图方式</label>
+      <select id="genMode">
+        <option value="svg">SVG 代码出图（任意文本模型即可，本地渲染）</option>
+        <option value="image">图片接口出图（需真实图像模型）</option>
+      </select>
+      <div class="hint">SVG 模式：让考生模型输出一段可渲染的 SVG 代码，本地渲染 512×512 后截图送评审，不依赖中转站的图像生成链路，DeepSeek / GLM / Moonshot 等纯文本模型也能当考生。Token 预算（上限不是花费）：生成输出 ≤4000，被截断才升到 ≤8000；自评 ≤600、再审 ≤800、代码审阅 ≤400，超上限即失败止损。一份正常检测全程约 2000~3000 输出 token；推理模型把预算烧在思考上会提前失败止损，这正是要抓的「掺水」行为。考生不支持看图时自评退化为「代码审阅」；再审（考官）只看渲染出的图片打分，必须配支持视觉的模型。图片模式：需要真实的图像生成模型。</div>
+    </div>
+    <div class="field"><label>协议格式</label>
+      <select id="genProto">
+        <option value="openai">OpenAI 格式（SVG 模式走 /v1/chat/completions；图片模式走 /v1/images/generations）</option>
+        <option value="openai-chat">OpenAI 对话出图（/v1/chat/completions，网关图像模型常用）</option>
+        <option value="anthropic">Anthropic 格式（/v1/messages，经代理的图像模型）</option>
+      </select>
+      <div class="hint">DeepSeek 官方已提供 Anthropic 兼容端点：Base 填 https://api.deepseek.com/anthropic 即可用 /v1/messages（该地址不提供 /models 列表，测试连接会跳过列表校验）；Moonshot / GLM / 通义等目前仍只有 OpenAI 兼容端点，请选「OpenAI 格式」。SVG 模式下该协议仅决定走哪个对话端点；「图片接口出图」模式才需要图像生成模型（gpt-image / seedream / flux 等）。</div>
+    </div>
+    <div class="field" data-page-node-id="tm0LXqaZRznyfXHSB9Cx1X"><label data-page-node-id="g5KjDzDqPHvA3doTpfCYtn">Base URL</label><input id="genBase" placeholder="https://api.example.com/v1" data-page-node-id="IARgXC1mnLDsWDelHMochx"></div>
+    <div class="field" data-page-node-id="GdQZ9SJPDlgEkzSbvfxhAY"><label data-page-node-id="vsRVWEshgnEmy94OdbiCFK">API Key</label><input id="genKey" type="password" placeholder="sk-..." data-page-node-id="4lWJE49l8DNyxfrtnBYIiC"></div>
+    <div class="field" data-page-node-id="cyzdT5uAB5y2UNDlm3H0TW"><label data-page-node-id="2hNEMfIbVT4S0EYxfOQ45D" id="lblGenModel">模型名称（文本模型即可）</label><input id="genModel" placeholder="deepseek-chat / glm-4-flash / moonshot…" data-page-node-id="TeH6Xzo4I1NmOq3MFRd1rv"></div>
+    <div class="test-row"><button class="btn small" onclick="testConn('gen')">🔌 测试连接</button><span class="test-msg" id="genTest"></span></div>
+    <div class="field" data-page-node-id="EfQFejwJ7MLHCYHEYKZxos" id="fieldSize"><label data-page-node-id="jMqIvWFh5rqmIj3LnskWwU">尺寸（越小越省）</label>
+      <select id="genSize" data-page-node-id="UcCM1NjAtggwjA97I4irZ8">
+        <option value="512x512" data-page-node-id="mmXx1HvDxEncFDEdKx920Q">512x512（推荐，最省）</option>
+        <option value="1024x1024" data-page-node-id="a4A90lzEYPg4q01BaVLCZX">1024x1024</option>
+        <option value="auto" data-page-node-id="yJbdQgw6A0L41F2fNRexdO">auto（交给模型）</option>
+      </select>
+    </div>
+    <div class="field" data-page-node-id="Jp90jKQDsKpi4PWxwOmYj7" id="fieldQuality"><label data-page-node-id="MFwuCkGgf4IqDiKgPtUBrr">质量参数</label>
+      <select id="genQuality" data-page-node-id="2gKvsbPNMLsmLBSqfARwF7">
+        <option value="low" data-page-node-id="XjcykOGAsvwNMGxBNpCS1I">low（gpt-image 系列省 Token）</option>
+        <option value="medium" data-page-node-id="jNgikvyccVN7l2kzFV8uov">medium</option>
+        <option value="high" data-page-node-id="17RpTN8dn3TSyvpLbCHLio">high</option>
+        <option value="" data-page-node-id="w3u85DmP1kNFn9h78nLBz1">不发送该参数（DALL·E 等）</option>
+      </select>
+    </div>
+
+    <div class="sec-title" data-page-node-id="T2GCDwTQzuwroI1u82BCDK">🔍 评审接口（裁判）</div>
+    <div class="field"><label>协议格式</label>
+      <select id="judgeProto">
+        <option value="openai">OpenAI 格式（/v1/chat/completions）</option>
+        <option value="anthropic">Anthropic 格式（/v1/messages）</option>
+      </select>
+    </div>
+    <div class="field" data-page-node-id="1pgTBu3NsK6xe85Y8E6FdA"><label data-page-node-id="km7QoRa1dYb3Si1NQDPuQz">Base URL</label><input id="judgeBase" placeholder="https://api.example.com/v1" data-page-node-id="4e5riTjexvLZcqDmJbBoEZ"></div>
+    <div class="field" data-page-node-id="lJHDSOaLudNGDGH6QzfkoR"><label data-page-node-id="hMP9b0MgGeYtQ3sDTuquER">API Key</label><input id="judgeKey" type="password" placeholder="sk-..." data-page-node-id="kNBUwwUD1gds8Uz9KVZJvH"></div>
+    <div class="field" data-page-node-id="z61iRhwu4N2r6Av0fcmSS5"><label data-page-node-id="Zs1Y1XPuB9tPSoppnREwks">模型名称（需支持视觉）</label><input id="judgeModel" placeholder="gpt-4o-mini / gemini-2.0-flash / qwen-vl..." data-page-node-id="cj9ZllI4Z3s7UUuLx6UuRw"></div>
+    <div class="test-row"><button class="btn small" onclick="testConn('judge')">🔌 测试连接</button><span class="test-msg" id="judgeTest"></span></div>
+
+    <div class="sec-title" data-page-node-id="ne1JWOrCdgv5vBs9XABgbU">📝 考题</div>
+    <div class="field" data-page-node-id="wMmml9rv0rPJLDktu9R0ma"><label data-page-node-id="8m0BHx1hU5AJsAz1CfrRIN">生成提示词（默认极简省 Token）</label><textarea id="prompt" rows="2">一只鹈鹕骑自行车</textarea></div>
+    <div class="hint" data-page-node-id="NdI2wgBHECiS72oKdqD7jR">Base URL 自动适配：以 /v1 结尾或不含 /v1 均可。Anthropic 格式使用 x-api-key + /v1/messages。SVG 模式只消耗文本 Token（无图像 Token），本地渲染 512×512 后再送评审；图片模式省 Token 策略为极简提示词 + 小尺寸 + low 质量。评审前图片统一压缩到 ≤512px，并限制裁判回复长度。</div>
+    <div class="hint" style="color:var(--green);margin-top:10px">✅ 这里的改动会即时生效并自动保存（含考题提示词）——换题后不用再点「保存配置」，直接开考即可。</div>
+  </div>
+  <div class="drawer-foot" data-page-node-id="FBQUq8Zr0zdAuBn8f6JUpU">
+    <button class="btn primary" style="flex:1" onclick="saveSettings()" data-page-node-id="njjJYMiOiUUl8dUanGL3cA">保存配置</button>
+    <button class="btn" onclick="closeDrawer()" data-page-node-id="wCegtWnlgYWum1P1eOCqOK">关闭</button>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()" data-page-node-id="vfQTddqtMaADBliRQsuaTO"><img id="lightboxImg" data-page-node-id="jWa2CM1BgIrXO3pNicBs57"></div>
+
+<!-- 代码弹窗（SVG 源码 / 实发提示词） -->
+<div class="svgbox" id="svgBox">
+  <div class="svgbox-inner">
+    <div class="svgbox-head"><span id="codeTitle">🧩 代码源码</span> <span class="sp" id="svgMeta"></span></div>
+    <textarea id="svgText" readonly spellcheck="false"></textarea>
+    <div class="svgbox-foot">
+      <button class="btn small" onclick="togglePromptView()" title="查看本次实际发给模型的完整提示词">📨 提示词 / 代码</button>
+      <button class="btn primary" style="flex:1" onclick="copySvg()">复制</button>
+      <button class="btn" onclick="document.getElementById('svgBox').style.display='none'">关闭</button>
+    </div>
+  </div>
+</div>
+<!-- 应用内弹窗（替代原生 prompt / confirm） -->
+<div class="uimodal" id="uiModal">
+  <div class="uimodal-box">
+    <div class="uimodal-title" id="uiTitle">请输入</div>
+    <div class="uimodal-msg" id="uiMsg" style="display:none"></div>
+    <input id="uiInput" style="display:none" autocomplete="off">
+    <div class="uimodal-foot">
+      <button class="btn small" id="uiCancelBtn" onclick="uiCancel()">取消</button>
+      <button class="btn small primary" id="uiOkBtn" onclick="uiOk()">确定</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" data-page-node-id="5NMrLB1LfGMBwqNbjPVQ3U"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const LS_KEY = 'arena_cfg_v1';
+const JUDGE_PROMPT = '你是严格的图像质量评审员。判断图片是否准确呈现题目内容与画面质量（主体正确性、结构合理性、美观度）。只输出JSON：{"score":<0到100的整数>,"comment":"<不超过40字的中文点评>"}，不要其他文字。';
+/* 题目文本兜底：任何路径传进 undefined / 空串 / 字符串"undefined"，都回退到默认题目，
+   否则发给模型的会是「画出「undefined」」——模型只能自由发挥，画面完全跑题且难以察觉 */
+const subjText = t => { const s=String(t==null?'':t).trim();
+  return (!s||s==='undefined'||s==='null')? '一只鹈鹕骑自行车' : s; };
+/* SVG 出图模式的提示词：只吐代码、不解释 */
+const svgGenPrompt = raw => { const t=subjText(raw); return '你是 SVG 绘图引擎。任务：用一段完整、可直接在浏览器渲染的 SVG 代码，画出「'+t+'」。\n'
+ +'【画面要求】\n'
+ +'1) 画的就是「'+t+'」本身：题目里的每个关键元素都要出现（例如"某动物骑某交通工具"就必须同时画出动物和交通工具），不要画成别的东西、也不要只画其中一部分。\n'
+ +'2) 用图形元素（path / circle / rect / ellipse / polygon / line）真实画出主体；禁止用 <text> 文字、emoji 或标题充当画面主体（文字只能做点缀）。\n'
+ +'3) 主体要占据画布主要区域（建议 ≥60%）、居中构图；画布要有背景色，不要把主体画得很小、留大片空白。\n'
+ +'4) 静态首帧就必须是完整成品：若加 <animate> 动画，动画只能让已经画好的图形运动，禁止让任何图形从"不存在 / 全透明 / 画布外"开始，否则渲染出来会是一张空图。\n'
+ +'【代码要求】\n'
+ +'5) 以 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"> 开头，所有坐标落在 0–512 内。\n'
+ +'6) 所有标签必须正确闭合（自闭合元素写成 <path .../>）；& < > 请写成 &amp; &lt; &gt;，不要使用 &nbsp; 等 HTML 命名实体。\n'
+ +'7) 纯自包含，不引用任何外部图片 / 字体 / 样式；代码尽量精简（不超过 120 行），避免被输出长度截断。\n'
+ +'8) 直接给最终成品：不要输出任何思考、推理过程或自言自语，禁止解释文字、禁止 markdown 代码块标记；回复以 <svg 开头、以 </svg> 结束。动手前再确认一次题目：「'+t+'」。'; };
+const JUDGE_PROMPT_SVG = '你是严格的 SVG 代码评审员。根据题目检查这段 SVG 代码是否正确完整地画出画面（主体正确性、结构合理性、坐标与标签合法性、能否正常渲染）。只输出JSON：{"score":<0到100的整数>,"comment":"<不超过40字的中文点评>"}，不要其他文字。';
+
+let history = [];      // {id, model, img(dataURL), score, emoji, comment, judge, time}
+let current = null;
+let lastSvgSource = ''; // 最近一次模型输出的 SVG 源码（渲染失败时也能查看/复制排查）
+let lastPromptText = ''; // 最近一次实际发给模型的提示词（供「📨 提示词 / 代码」弹窗自查）
+
+/* ---------- 配置 ---------- */
+function loadSettings(){
+  try{
+    const c = JSON.parse(localStorage.getItem(LS_KEY)||'{}');
+    fillForm(c);
+    if(c.history) history=c.history;
+    activePresetId = localStorage.getItem('arena_active_preset')||null;
+    refreshPresetSel();
+    renderGallery(); renderTextGallery(); renderRecords();
+  }catch(e){}
+}
+function formCfg(){
+  return {
+    genMode:cfgVal('genMode','svg'),
+    genProto:cfgVal('genProto','openai'),
+    genBase:cfgVal('genBase','').trim(), genKey:cfgVal('genKey','').trim(), genModel:cfgVal('genModel','').trim(),
+    genSize:cfgVal('genSize','512x512'), genQuality:cfgVal('genQuality','low'),
+    judgeProto:cfgVal('judgeProto','openai'),
+    judgeBase:cfgVal('judgeBase','').trim(), judgeKey:cfgVal('judgeKey','').trim(), judgeModel:cfgVal('judgeModel','').trim(),
+    prompt:cfgVal('prompt','').trim()||'一只鹈鹕骑自行车'
+  };
+}
+// 把配置写回表单（不落盘）
+function fillForm(c){
+  c=c||{};
+  if($('genMode')) $('genMode').value=genModeOf(c);   // 老配置遗留的 genMode:'html' 归一为 svg
+  if($('genProto')) $('genProto').value=c.genProto||'openai';
+  $('genBase').value=c.genBase||''; $('genKey').value=c.genKey||'';
+  $('genModel').value=c.genModel||''; $('genSize').value=c.genSize||'512x512';
+  $('genQuality').value=c.genQuality!==undefined?c.genQuality:'low';
+  if($('judgeProto')) $('judgeProto').value=c.judgeProto||'openai';
+  $('judgeBase').value=c.judgeBase||''; $('judgeKey').value=c.judgeKey||'';
+  $('judgeModel').value=c.judgeModel||''; $('prompt').value=c.prompt||'一只鹈鹕骑自行车';
+  syncModeHint();
+}
+function saveSettings(){
+  // 保存时不强制双接口齐全：图像考场自行校验双接口，文本考场仅需考生配置
+  const c=formCfg();
+  localStorage.setItem(LS_KEY, JSON.stringify(c));
+  const cur=getPresets().find(p=>p.id===activePresetId);
+  if(cur && JSON.stringify(cur.cfg)!==JSON.stringify(c)){
+    toast('已保存为当前配置；方案「'+cur.name+'」内容未变，如需同步请点「↻ 更新所选」');
+  }else{
+    toast('配置已保存');
+  }
+  closeDrawer();
+}
+// 配置默认值：读取时统一补齐，避免老版本存的配置缺字段（缺 prompt 时题目会变成「undefined」，
+// 界面文本框却显示默认题目 → 模型画出完全跑题的东西，且看不出异常）
+const CFG_DEFAULTS={ genMode:'svg', genProto:'openai', genBase:'', genKey:'', genModel:'',
+  genSize:'512x512', genQuality:'low', judgeProto:'openai', judgeBase:'', judgeKey:'', judgeModel:'',
+  prompt:'一只鹈鹕骑自行车' };
+function cfgWithDefaults(raw){
+  const c=Object.assign({}, CFG_DEFAULTS, raw||{});
+  if(!String(c.prompt||'').trim()) c.prompt=CFG_DEFAULTS.prompt;   // 空/缺失/字符串"undefined"都兜回默认题目
+  if(c.prompt==='undefined'||c.prompt==='null') c.prompt=CFG_DEFAULTS.prompt;
+  if(!c.genMode) c.genMode=CFG_DEFAULTS.genMode;
+  return c;
+}
+function getCfg(){
+  let raw={}; try{ raw=JSON.parse(localStorage.getItem(LS_KEY)||'{}') }catch(e){ raw={} }
+  return cfgWithDefaults(raw);
+}
+// 抽屉表单改动即自动落盘：开考读的是 localStorage，若不自动保存，改了考题却忘了点「保存配置」
+// 就会继续用旧题目（现象：模型画出来的不是你要的东西）
+let _autoSaveTimer=null;
+function autoPersistForm(){
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer=setTimeout(()=>{
+    try{
+      const now=formCfg();
+      if(JSON.stringify(getCfg())===JSON.stringify(now)) return;
+      localStorage.setItem(LS_KEY, JSON.stringify(now));
+      syncModeHint();
+    }catch(e){}
+  },350);
+}
+(function bindAutoPersist(){
+  const box=$('drawerBody'); if(!box) return;
+  ['input','change'].forEach(ev=>box.addEventListener(ev,e=>{
+    const t=e.target;
+    if(t&&/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) autoPersistForm();
+  }));
+  // 关抽屉时立刻落盘，避免 350ms 防抖窗口内被关闭而丢改动
+  if($('overlay')) $('overlay').addEventListener('click',()=>{ clearTimeout(_autoSaveTimer); try{ localStorage.setItem(LS_KEY, JSON.stringify(formCfg())); }catch(e){} });
+})();
+
+/* ---------- 配置方案（预设，一键切换） ---------- */
+const PS_KEY = 'arena_presets_v1';   // [{id,name,cfg}]
+let activePresetId = null;           // 当前选中的方案（仅界面态，不自动套用）
+function getPresets(){ try{ const a=JSON.parse(localStorage.getItem(PS_KEY)||'[]'); return Array.isArray(a)?a:[] }catch(e){ return [] } }
+function setPresets(a){ try{ localStorage.setItem(PS_KEY, JSON.stringify(a)) }catch(e){ toast('本机存储已满，方案保存失败') } }
+function refreshPresetSel(){
+  const sel=$('presetSel'); if(!sel) return;
+  const list=getPresets();
+  sel.innerHTML='<option value="">— 选择配置方案 —</option>'+
+    list.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'（'+esc(p.cfg.genModel||'未填模型')+'）</option>').join('');
+  sel.value = list.some(p=>p.id===activePresetId)? activePresetId : '';
+}
+// 下拉切换：整体套用该方案的接口配置（立即生效，无需再点保存）
+function applyPreset(id){
+  if(!id){ activePresetId=null; localStorage.removeItem('arena_active_preset'); return; }
+  const p=getPresets().find(x=>x.id===id); if(!p) return;
+  activePresetId=id; localStorage.setItem('arena_active_preset',id);
+  refreshPresetSel();
+  const full=cfgWithDefaults(p.cfg);   // 老方案可能缺字段（尤其是考题）→ 补齐后再套用，避免题目变成 undefined
+  p.cfg=full;
+  fillForm(full);
+  localStorage.setItem(LS_KEY, JSON.stringify(full));
+  renderGallery(); renderTextGallery(); renderRecords();
+  toast('已切换到方案「'+p.name+'」');
+}
+async function savePresetAs(){
+  const c=formCfg();
+  const def=[c.genModel||'未填模型', c.genBase||''].filter(Boolean).join(' · ').slice(0,28)||'新方案';
+  const name=((await uiPrompt('另存为配置方案', def, '把当前填写内容存成方案，之后可在下拉框一键切换。'))||'').trim();
+  if(!name) return;
+  const list=getPresets();
+  const same=list.find(p=>p.name===name);
+  if(same && !(await uiConfirm('方案同名', '已存在名为「'+name+'」的方案，是否覆盖它？'))) return;
+  if(same){
+    same.cfg=c; setPresets(list); activePresetId=same.id; localStorage.setItem('arena_active_preset',same.id);
+    localStorage.setItem(LS_KEY, JSON.stringify(c));
+    refreshPresetSel(); toast('已覆盖方案「'+name+'」'); return;
+  }
+  const p={ id:'p'+Date.now(), name, cfg:c };
+  list.push(p); setPresets(list); activePresetId=p.id; localStorage.setItem('arena_active_preset',p.id);
+  localStorage.setItem(LS_KEY, JSON.stringify(c));
+  refreshPresetSel(); toast('已保存方案「'+name+'」');
+}
+function updatePreset(){
+  if(!activePresetId){ toast('请先在下拉框选择一个方案'); return; }
+  const list=getPresets(), p=list.find(x=>x.id===activePresetId); if(!p) return;
+  p.cfg=formCfg(); setPresets(list);
+  localStorage.setItem(LS_KEY, JSON.stringify(p.cfg));
+  refreshPresetSel(); toast('已更新方案「'+p.name+'」');
+}
+async function renamePreset(){
+  if(!activePresetId){ toast('请先在下拉框选择一个方案'); return; }
+  const list=getPresets(), p=list.find(x=>x.id===activePresetId); if(!p) return;
+  const name=((await uiPrompt('重命名方案', p.name))||'').trim(); if(!name) return;
+  p.name=name; setPresets(list); refreshPresetSel(); toast('已重命名为「'+name+'」');
+}
+async function deletePreset(){
+  if(!activePresetId){ toast('请先在下拉框选择一个方案'); return; }
+  const list=getPresets(), p=list.find(x=>x.id===activePresetId); if(!p) return;
+  if(!(await uiConfirm('删除配置方案', '确定删除「'+p.name+'」？该操作不可恢复。'))) return;
+  setPresets(list.filter(x=>x.id!==activePresetId));
+  activePresetId=null; localStorage.removeItem('arena_active_preset'); refreshPresetSel(); toast('方案已删除');
+}
+// 出图方式联动界面文案（SVG 模式：文本模型即可；图片模式：需图像模型）
+const GEN_MODES = {
+  svg:   { sec:'🧩 考生模型（只输出 SVG 代码）', label:'模型名称（文本模型即可）', ph:'deepseek-chat / glm-4-flash / moonshot…', sub:'◇ 能力概览 · SVG 出图（本地渲染）', how:'由模型输出 SVG、本地渲染', local:true },
+  image: { sec:'🎨 生成接口（考生）', label:'模型名称', ph:'gpt-image-1 / dall-e-3 / seedream…', sub:'◇ 能力概览 · 图像生成', how:'生成', local:false }
+};
+function genModeOf(c){ const m=(c&&c.genMode)||'svg'; return GEN_MODES[m]?m:'svg'; }
+function isLocalMode(c){ return !!GEN_MODES[genModeOf(c)].local; }   // SVG：本地渲染，不需图像模型
+function isSvgMode(c){ return genModeOf(c)==='svg'; }
+// 各模式在记录 / 徽章上的展示名（旧版 HTML 记录回退为「图片」展示）
+function modeInfo(h){
+  const k=!h? '' : (h.type==='text'? 'text' : (h.mode||'image'));
+  return ({ text:{badge:'📝 文本', cls:'txt'},
+            svg:{badge:'🧩 SVG', cls:'img'},
+            image:{badge:'🎨 图片', cls:'img'},
+            fail:{badge:'💥 失败', cls:'fail'} })[k] || {badge:'🎨 图片', cls:'img'};
+}
+function syncModeHint(){
+  const m=GEN_MODES[genModeOf(formCfg())];
+  const st=$('secGen'); if(st) st.textContent=m.sec;
+  const lb=$('lblGenModel'); if(lb) lb.textContent=m.label;
+  const gm=$('genModel'); if(gm) gm.placeholder=m.ph;
+  const sb=$('subbarText'); if(sb) sb.textContent=m.sub;
+  const ph=$('placeholder'); if(ph&&!current) ph.innerHTML='尚无作品<br>点击「开始检测」'+m.how+'<br>默认考题：一只鹈鹕骑自行车';
+  ['fieldSize','fieldQuality'].forEach(id=>{ const el=$(id); if(el) el.style.display=m.local?'none':''; });
+  if($('genProto')) $('genProto').disabled=false; // 两种模式都要用协议（SVG 走对话端点）
+}
+if($('genMode')) $('genMode').onchange=syncModeHint;
+function openDrawer(){ refreshPresetSel(); $('overlay').style.display='block'; $('drawer').classList.add('open'); }
+function closeDrawer(){ $('overlay').style.display='none'; $('drawer').classList.remove('open'); }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',2600); }
+
+/* ---------- 应用内弹窗：预览 iframe 会屏蔽 window.prompt/confirm，必须自绘 ---------- */
+let _uiRes=null, _uiMode='prompt';
+function _uiClose(val){
+  const r=_uiRes; _uiRes=null;
+  const m=$('uiModal'); if(m) m.classList.remove('open');
+  if(r) r(val);
+}
+function _uiShow(mode, title, def, msg){
+  return new Promise(res=>{
+    _uiRes=res; _uiMode=mode;
+    $('uiTitle').textContent=title||(mode==='prompt'?'请输入':'请确认');
+    const mm=$('uiMsg');
+    if(mm){ mm.style.display=msg?'block':'none'; mm.textContent=msg||''; }
+    const inp=$('uiInput');
+    if(inp){
+      inp.style.display = mode==='prompt'?'block':'none';
+      inp.value = mode==='prompt'?(def||''):'';
+    }
+    $('uiModal').classList.add('open');
+    if(mode==='prompt' && inp) setTimeout(()=>{ inp.focus(); inp.select(); },30);
+  });
+}
+function uiPrompt(title, def, msg){ return _uiShow('prompt', title, def, msg); }
+function uiConfirm(title, msg){ return _uiShow('confirm', title, '', msg); }
+function uiOk(){ _uiClose(_uiMode==='prompt'? $('uiInput').value : true); }
+function uiCancel(){ _uiClose(_uiMode==='prompt'? null : false); }
+document.addEventListener('keydown', e=>{
+  const m=$('uiModal'); if(!m||!m.classList.contains('open')) return;
+  if(e.key==='Escape'){ e.preventDefault(); uiCancel(); }
+  else if(e.key==='Enter' && _uiMode==='confirm'){ e.preventDefault(); uiOk(); }
+});
+if($('uiInput')) $('uiInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); uiOk(); }
+});
+if($('uiModal')) $('uiModal').addEventListener('click', e=>{ if(e.target===$('uiModal')) uiCancel(); });
+
+/* ---------- 测试连接 ---------- */
+function setTest(t, cls, msg){
+  const el=$(t+'Test'); el.className='test-msg '+cls; el.textContent=msg;
+}
+async function testConn(t){
+  const val=id=>{ const el=$(id); if(!el) throw new Error('页面缺少配置项 #'+id+'，请刷新页面'); return el.value.trim(); };
+  try{
+    const base=val(t+'Base'), key=val(t+'Key'), model=val(t+'Model'),
+          proto=($(t+'Proto')? $(t+'Proto').value : 'openai');
+    if(!base||!key){ setTest(t,'err','✗ 请先填写 Base URL 和 API Key'); return; }
+    setTest(t,'load','测试中…');
+    // 第一步：GET /models 验证地址+密钥（通常免费）。但并非所有协议子路径都提供该端点：
+    // 例：DeepSeek 的 Anthropic 兼容地址 https://api.deepseek.com/anthropic 只实现 /v1/messages，
+    //  没有 /v1/models。此时 404/405 只代表「列表不可用」，不能据此判失败，改由下面的业务端点实测。
+    let msg;
+    const url=apiUrl(base,'/models');
+    const r=await fetch(url,{method:'GET',headers:authHeaders(key,proto)});
+    if(r.ok){
+      const j=await r.json().catch(()=>({}));
+      const ids=(j.data||j.models||[]).map(m=>m.id||m.name||'');
+      msg='✓ 地址/密钥有效（'+ids.length+' 个可用模型）';
+      if(model){
+        const hit=ids.includes(model);
+        msg+= hit ? '，模型「'+model+'」已在列表中'
+                  : '，模型「'+model+'」不在列表中（部分服务不透传列表，仍可直接开考验证）';
+      }
+    }else if(r.status===401||r.status===403){
+      // 鉴权失败是硬错误：地址或密钥不对
+      const txt=await r.text().catch(()=>'');
+      let detail=''; try{ detail=JSON.parse(txt).error?.message||'' }catch(e){}
+      throw new Error('HTTP '+r.status+(detail?'：'+detail.slice(0,80):''));
+    }else{
+      msg='· 该端点未提供 /models 列表（HTTP '+r.status+'），跳过列表校验';
+    }
+    // 第二步：业务端点实测。/models 顶多验证地址可达，并不保证业务端点存在
+    // Anthropic / 对话出图协议用一次最小业务请求（消耗约 1~10 tokens）实测端点，避免"测试通过、开考 404"
+    if(proto==='anthropic'){
+      const pr=await fetch(apiUrl(base,'/messages'),{method:'POST',
+        headers:{...authHeaders(key,proto),'Content-Type':'application/json'},
+        body:JSON.stringify({model:model||'probe',max_tokens:1,messages:[{role:'user',content:'hi'}]})});
+      if(!pr.ok){
+        const txt=await pr.text().catch(()=>'');
+        let detail=''; try{ detail=JSON.parse(txt).error?.message||'' }catch(e){}
+        if(pr.status===404)
+          throw new Error('HTTP 404：该地址下不存在 /v1/messages 端点。请确认 Base URL 填的是供应商的 Anthropic 兼容地址（例：https://api.deepseek.com/anthropic）；若该供应商只提供 OpenAI 兼容端点，请把协议切回「OpenAI 格式」'+(detail?'（'+detail.slice(0,60)+'）':''));
+        throw new Error('业务端点探测失败：HTTP '+pr.status+(detail?'：'+detail.slice(0,80):''));
+      }
+      msg+='；✓ /v1/messages 业务端点实测可用（消耗约 1~10 tokens）';
+    }else if(proto==='openai-chat'){
+      const pr=await fetch(apiUrl(base,'/chat/completions'),{method:'POST',
+        headers:{...authHeaders(key,proto),'Content-Type':'application/json'},
+        body:JSON.stringify({model:model||'probe',max_tokens:1,messages:[{role:'user',content:'hi'}]})});
+      if(!pr.ok){
+        const txt=await pr.text().catch(()=>'');
+        let detail=''; try{ detail=JSON.parse(txt).error?.message||'' }catch(e){}
+        throw new Error('业务端点探测失败：HTTP '+pr.status+(detail?'：'+detail.slice(0,80):''));
+      }
+      msg+='；✓ /v1/chat/completions 业务端点实测可用（消耗约 1~10 tokens）';
+    }
+    setTest(t,'ok',msg);
+  }catch(e){
+    setTest(t,'err','✗ 连接失败：'+(e.message||e)+(String(e.message).includes('Failed to fetch')?'（可能是网络不通或 CORS 跨域限制）':''));
+  }
+}
+// 防御性读取配置控件值
+function cfgVal(id, def){
+  const el=$(id); return el? el.value : def;
+}
+
+/* ---------- 自动复测（掺水监控） ---------- */
+let retestTimer=null, retestNextAt=0;
+const RETEST_INTERVAL=60*60*1000; // 默认每 1 小时一次（省钱：一次完整检测约 2000~3000 输出 token）
+const fmtRemain=ms=>{                                             // 剩余时间 → "MM:SS"（满 1 小时也从 59:59 起显示）
+  const s=Math.min(3599,Math.max(0,Math.ceil(ms/1000))), m=Math.floor(s/60);
+  return String(m).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+};
+function toggleRetest(){
+  const btn=$('btnRetest');
+  if(retestTimer){
+    clearInterval(retestTimer); retestTimer=null;
+    btn.textContent='⏱ 自动复测'; btn.classList.remove('primary');
+    toast('已停止自动复测');
+    return;
+  }
+  retestNextAt=Date.now()+RETEST_INTERVAL;
+  retestTimer=setInterval(()=>{                                   // 每秒走一步：更新按钮上的倒计时
+    const left=retestNextAt-Date.now();
+    if(left<=0){
+      if($('btnGo').disabled){ retestNextAt=Date.now()+30*1000; return; } // 上一次未结束：推迟 30 秒再试
+      runArena();                                                 // 到点自动检测
+      retestNextAt=Date.now()+RETEST_INTERVAL;
+      return;
+    }
+    btn.textContent='⏹ 停止复测('+fmtRemain(left)+')';
+  }, 1000);
+  btn.textContent='⏹ 停止复测(59:59)'; btn.classList.add('primary');
+  toast('已开启自动复测：每 1 小时测一次，用于监控中转站是否降智');
+  if(!$('btnGo').disabled) runArena(); // 开启后立即先测一次
+}
+
+/* ---------- 工具 ---------- */
+function apiUrl(base, path){
+  base = base.replace(/\/+$/,'');
+  return /\/v\d+$/.test(base) ? base+path : base+'/v1'+path;
+}
+// OpenAI: Bearer Token；Anthropic: x-api-key + anthropic-version
+function authHeaders(key, proto){
+  if(proto==='anthropic')
+    return {'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+  return {'Content-Type':'application/json','Authorization':'Bearer '+key};
+}
+async function apiFetch(url, key, body, proto){
+  const r = await fetch(url,{method:'POST',headers:authHeaders(key,proto||'openai'),body:JSON.stringify(body)});
+  const txt = await r.text();
+  let j; try{ j=JSON.parse(txt) }catch(e){ throw new Error('HTTP '+r.status+'：'+txt.slice(0,200)) }
+  if(!r.ok){
+    const msg=(j.error&&(typeof j.error==='string'?j.error:j.error.message)) || j.message || j.detail || ('HTTP '+r.status);
+    throw new Error('HTTP '+r.status+'：'+msg);
+  }
+  return j;
+}
+// 从任意文本中提取图片（data URI / markdown 图 / 裸链接 / 超长裸 base64）
+function extractImageFromText(t){
+  if(typeof t!=='string'||!t) return null;
+  let m=t.match(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/);
+  if(m) return m[0];
+  m=t.match(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/);
+  if(m) return m[1];
+  m=t.match(/https?:\/\/\S+\.(?:png|jpe?g|webp)(?:\?\S*)?/i);
+  if(m) return m[0];
+  m=t.match(/[A-Za-z0-9+/]{500,}={0,2}/);
+  if(m) return 'data:image/png;base64,'+m[0];
+  return null;
+}
+// OpenAI 对话出图：网关图像模型常经 /chat/completions 返回图（message.images 或文本内嵌）
+async function chatGen(c){
+  const base={model:c.genModel, messages:[{role:'user',content:c.prompt}]};
+  let j;
+  try{
+    // 部分中转需要 modalities 明确要求返回图片
+    j=await apiFetch(apiUrl(c.genBase,'/chat/completions'), c.genKey, {...base, modalities:['image','text']}, 'openai');
+  }catch(e){
+    if(/HTTP 4\d\d/.test(String(e.message||''))) // 不认该参数则去掉重试
+      j=await apiFetch(apiUrl(c.genBase,'/chat/completions'), c.genKey, base, 'openai');
+    else throw e;
+  }
+  const msg=(j.choices&&j.choices[0]&&j.choices[0].message)||{};
+  for(const im of (msg.images||[])){ // new-api 等网关的 images 字段
+    const u=(im&&im.image_url&&im.image_url.url)||im&&im.url||im;
+    if(typeof u==='string'&&u) return {j, img:u};
+  }
+  const content=Array.isArray(msg.content)? msg.content.map(b=>(b&&b.text)||'').join('\n') : (msg.content||'');
+  const img=extractImageFromText(content);
+  return {j, img, textOnly:!img, textPreview:String(content||'').trim().slice(0,100)};
+}
+// 中转站图像链路诊断结论
+function relayVerdict(textPreview){
+  return '【中转站掺水检测结论】该“图像模型”经对话端点只返回了纯文本'+(textPreview?'（内容是提示词扩写，不是图）':'')+
+         '，图像端点又持续报错（404/503）——说明该站点的图像生成链路当前不可用。若是临时故障可稍后重试；'+
+         '若多次测试均如此，则该中转站大概率没有可用的真实图像模型（典型掺水/套壳信号），建议换站或找站长对线';
+}
+// 502/503/504 瞬时错误自动退避重试（2s / 4s）
+async function withTransientRetry(fn){
+  let lastErr;
+  for(let i=0;i<3;i++){
+    try{ return await fn(); }
+    catch(e){
+      lastErr=e;
+      if(!/HTTP 5(02|03|04)/.test(String(e.message||''))||i===2) throw e;
+      console.warn('[试金石] 服务暂时不可用，'+((i+1)*2)+'s 后重试：', e.message);
+      await new Promise(r=>setTimeout(r,(i+1)*2000));
+    }
+  }
+  throw lastErr;
+}
+// 生成请求：参数被拒时自动降级重试（去掉 quality → 再去掉 size → 极简请求），503 类自动退避
+async function genWithFallback(c){
+  const full={model:c.genModel, prompt:c.prompt, n:1, size:c.genSize};
+  if(c.genQuality) full.quality=c.genQuality;
+  if(c.genSize==='auto') delete full.size;
+  const noQ={...full}; delete noQ.quality;
+  const minimal={model:c.genModel, prompt:c.prompt, n:1};
+  const bodies=[full, noQ, minimal];
+  let lastErr;
+  for(let i=0;i<bodies.length;i++){
+    try{
+      return await withTransientRetry(()=>apiFetch(apiUrl(c.genBase,'/images/generations'), c.genKey, bodies[i], 'openai'));
+    }catch(e){
+      lastErr=e;
+      const m=String(e.message||'');
+      const retryable=/HTTP [45]\d\d/.test(m) && !/HTTP (401|403|404|429)/.test(m);
+      const changed=JSON.stringify(bodies[i])!==JSON.stringify(bodies[i+1]);
+      if(retryable && changed && i<bodies.length-1){
+        console.warn('[试金石] 生成参数被拒，自动降级重试：', m);
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+// 从 Anthropic messages 响应的 content 块中提取图片（兼容各类代理返回格式）
+function extractAnthropicImage(j){
+  for(const blk of (j.content||[])){
+    if(blk.type==='image'){
+      const s=blk.source||{};
+      if(s.type==='base64'&&s.data) return 'data:'+(s.media_type||'image/png')+';base64,'+s.data;
+      if(s.type==='url'&&s.url) return s.url;
+    }
+    // 部分代理用 image_url / output_image 块返回
+    if(blk.type==='image_url'||blk.type==='output_image'){
+      const u=(blk.image_url&&blk.image_url.url)||blk.url;
+      if(u) return u;
+    }
+    // 兼容代理把图放文本里：markdown 图 / data URI / 裸图片链接 / 超长裸 base64
+    if(blk.type==='text'&&typeof blk.text==='string'){
+      const t=blk.text;
+      let m=t.match(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/);
+      if(m) return m[0];
+      m=t.match(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/);
+      if(m) return m[1];
+      m=t.match(/https?:\/\/\S+\.(?:png|jpe?g|webp)(?:\?\S*)?/i);
+      if(m) return m[0];
+      m=t.match(/[A-Za-z0-9+/]{500,}={0,2}/);
+      if(m) return 'data:image/png;base64,'+m[0];
+    }
+  }
+  return null;
+}
+function setCrumb(n){
+  [1,2,3].forEach(i=>$('crumb'+i).classList.toggle('on', i<=n));
+}
+// 压缩图片给评审模型，尽量省 Token（跨域图先尝试匿名加载，失败则回退原图）
+function shrinkImage(dataUrl, maxSide=512, q=0.72){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    if(/^https?:/.test(dataUrl)) img.crossOrigin='anonymous';
+    img.onload=()=>{
+      try{
+        const s=Math.min(1, maxSide/Math.max(img.width,img.height));
+        const cv=document.createElement('canvas');
+        cv.width=Math.round(img.width*s); cv.height=Math.round(img.height*s);
+        cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+        res(cv.toDataURL('image/jpeg',q));
+      }catch(e){ rej(e) } // 画布被跨域污染
+    };
+    img.onerror=()=>rej(new Error('图片加载失败'));
+    img.src=dataUrl;
+  });
+}
+// 持久化：历史图片压成 256px 缩略图再存，防止撑爆 localStorage；超配额时逐条丢弃最旧记录
+// 代码源码（SVG）体积大，只保留当前会话内存，不落盘（否则几条记录就会挤爆配额）
+async function persist(){
+  const c=getCfg(); c.history=[];
+  const slim=[];
+  for(const h of history){
+    const base={...h}; delete base.code;
+    try{ slim.push({...base, img: await shrinkImage(h.img,256,0.6)}); }
+    catch(e){ slim.push(base); }
+  }
+  const trySave=arr=>localStorage.setItem(LS_KEY, JSON.stringify({...c, history:arr}));
+  try{ trySave(slim); }
+  catch(e){ while(slim.length>1){ slim.pop(); try{ trySave(slim); return }catch(e2){} } }
+}
+function dataUrlFromApi(j){
+  const d=j.data&&j.data[0];
+  if(d&&d.b64_json) return 'data:image/png;base64,'+d.b64_json;
+  if(d&&d.url) return d.url;
+  throw new Error('响应中没有图片数据');
+}
+function imgToDataUrl(url){
+  // 若接口返回 URL，尝试拉取转 base64（失败则直接用 URL）
+  return fetch(url).then(r=>r.blob()).then(b=>new Promise(res=>{
+    const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(b);
+  })).catch(()=>url);
+}
+
+/* ---------- SVG 出图模式（本地渲染，不依赖图像生成接口） ---------- */
+// 从模型回复中抠出完整可渲染的 SVG：去 markdown 围栏、补 xmlns/宽高、去脚本与事件属性、截断时尽力补闭合
+function extractSvg(text){
+  if(!text||typeof text!=='string') return null;
+  let t=text.replace(/```[a-zA-Z]*/g,'').replace(/```/g,'');
+  const i=t.search(/<svg[\s>]/i);
+  if(i<0) return null;
+  let s=t.slice(i);
+  const end=s.toLowerCase().indexOf('</svg>');
+  if(end>=0) s=s.slice(0,end+6);
+  else s=s.replace(/\s*$/,'')+'</svg>';
+  s=s.replace(/<script[\s\S]*?<\/script>/gi,'').replace(/\son\w+\s*=\s*("[^"]*"|'[^']*')/gi,''); // 保险：去掉脚本
+  if(!/xmlns=/i.test(s)) s=s.replace(/<svg/i,'<svg xmlns="http://www.w3.org/2000/svg"');
+  // 尺寸统一成固定像素：缺失、或写成百分比（<img> 解码时可能算成 0 尺寸 → 渲染失败或空白）时，
+  // 抹掉原有 width/height 再补 512，避免出现重复属性导致 XML 非法
+  const head=s.slice(0,s.indexOf('>')+1);
+  const isPct=v=>/^\s*["']?\s*[\d.]+%\s*["']?\s*$/.test(v||'');
+  const wm=head.match(/\bwidth\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i);
+  const hm=head.match(/\bheight\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i);
+  if(!wm||!hm||isPct(wm[1])||isPct(hm[1])){
+    s=s.replace(/<svg\b[^>]*>/i,tag=>tag
+      .replace(/\s+(?:width|height)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,'')
+      .replace(/<svg/i,'<svg width="512" height="512"'));
+  }
+  return s;
+}
+// 诊断：<img> 解 SVG 走的是严格 XML 解析器，这里用它把「到底哪里非法」问出来（比"代码含非法内容"有用得多）
+function diagnoseXml(svgStr){
+  try{
+    const doc=new DOMParser().parseFromString(String(svgStr||''),'image/svg+xml');
+    const pe=doc&&doc.querySelector?doc.querySelector('parsererror'):null;
+    if(pe) return String(pe.textContent||'').replace(/\s+/g,' ').trim().slice(0,180);
+    const root=doc&&doc.documentElement;
+    if(root&&!doc.querySelector('parsererror')&&root.nodeName.toLowerCase()!=='svg')
+      return '根元素不是 <svg>（实际是 <'+root.nodeName+'>）';
+    return '';
+  }catch(e){ return String(e.message||e).slice(0,180); }
+}
+// 文本层修复：专治让严格 XML 解析失败、但 HTML 解析器能"容忍"甚至照抄下来的问题
+function xmlFixups(svgStr){
+  if(!svgStr||typeof svgStr!=='string') return null;
+  let t=svgStr;
+  // 1) XML 声明只能出现在最开头，否则整份文档解析失败 → 直接删掉（不影响渲染）
+  t=t.replace(/<\?xml[\s\S]*?\?>/gi,'');
+  // 2) 裸 & 不是合法实体的 → 转义（XML 只认 &amp; &lt; &gt; &quot; &apos; 与数字实体）
+  t=t.replace(/&(?!(?:[a-zA-Z][a-zA-Z0-9]{1,31}|#\d{1,7}|#x[0-9a-fA-F]{1,6});)/g,'&amp;');
+  // 2b) HTML 命名实体在 XML 里未定义（&nbsp; 等）→ 换成对应字符；XML 自带的 &amp;/&lt;/&gt;/&quot;/&apos; 保持不动
+  const HTML_ENT={nbsp:'\u00a0',copy:'\u00a9',reg:'\u00ae',trade:'\u2122',mdash:'\u2014',ndash:'\u2013',
+    hellip:'\u2026',times:'\u00d7',divide:'\u00f7',deg:'\u00b0',middot:'\u00b7',lsquo:'\u2018',rsquo:'\u2019',
+    ldquo:'\u201c',rdquo:'\u201d',bull:'\u2022',laquo:'\u00ab',raquo:'\u00bb',sup2:'\u00b2',sup3:'\u00b3',
+    frac12:'\u00bd',euro:'\u20ac',pound:'\u00a3',yen:'\u00a5',sect:'\u00a7',para:'\u00b6',dagger:'\u2020',
+    minus:'\u2212',infin:'\u221e',rarr:'\u2192',larr:'\u2190',uarr:'\u2191',darr:'\u2193',check:'\u2713',
+    star:'\u2605',heart:'\u2665',alpha:'\u03b1',beta:'\u03b2',pi:'\u03c0'};
+  t=t.replace(/&([a-zA-Z][a-zA-Z0-9]{1,31});/g,(m,n)=>{ const v=HTML_ENT[n.toLowerCase()]; return v!==undefined? v : m; });
+  // 3) 未声明的命名空间前缀 → 是最常见也最隐蔽的失败原因：
+  //    xlink 补上标准声明；其它乱写的前缀（如 pe:bike）直接抹掉前缀当普通 SVG 标签处理
+  const declared={};
+  for(const m of t.matchAll(/xmlns:([a-zA-Z0-9_-]+)\s*=/g)) declared[m[1].toLowerCase()]=1;
+  const used={};
+  for(const m of t.matchAll(/<\/?([a-zA-Z][\w.-]*):[a-zA-Z][\w.-]*/g)) used[m[1].toLowerCase()]=1;
+  for(const m of t.matchAll(/\s([a-zA-Z][\w.-]*):[a-zA-Z][\w.-]*\s*=/g)) used[m[1].toLowerCase()]=1;
+  Object.keys(used).forEach(p=>{
+    if(p==='xml'||p==='xmlns'||declared[p]) return;
+    if(p==='xlink'){
+      if(!/xmlns:xlink\s*=/i.test(t)) t=t.replace(/<svg\b/i,'<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+      return;
+    }
+    t=t.replace(new RegExp('</'+p+':','gi'),'</')
+       .replace(new RegExp('<'+p+':','gi'),'<')
+       .replace(new RegExp('\\s'+p+':(?=[a-zA-Z][\\w.-]*\\s*=)','gi'),' ');
+  });
+  // 4) 同一标签内重复属性 → XML 直接报错，只保留第一个
+  t=t.replace(/<([a-zA-Z][\w.:-]*)((?:\s+[^<>]*?)?)(\/?)>/g,(m,tag,attrs,sc)=>{
+    const seen={}; let out='';
+    const re=/\s+([a-zA-Z_:][\w:.-]*)\s*(?:=\s*("[^"]*"|'[^']*'|[^\s"'>]+))?/g;
+    let a;
+    while((a=re.exec(attrs))){
+      const n=a[1].toLowerCase();
+      if(seen[n]) continue;
+      seen[n]=1;
+      out+=' '+a[1]+(a[2]!==undefined?'='+a[2]:'');
+    }
+    return '<'+tag+out+(sc?'/':'')+'>';
+  });
+  return t===svgStr? null : t;   // 没改动就不必当候选
+}
+// 本地渲染：SVG 文本 → Blob → <img>（脚本不执行、不联网）→ canvas 转 PNG
+function renderSvgToPng(svg, size=512){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const cv=document.createElement('canvas'); cv.width=size; cv.height=size;
+        const cx=cv.getContext('2d');
+        cx.fillStyle='#ffffff'; cx.fillRect(0,0,size,size);
+        const w=img.width||size, h=img.height||size, k=Math.min(size/w,size/h);
+        cx.drawImage(img,(size-w*k)/2,(size-h*k)/2,w*k,h*k);
+        URL.revokeObjectURL(url);
+        res(cv.toDataURL('image/png'));
+      }catch(e){ URL.revokeObjectURL(url); rej(e); }
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('代码不完整或含非法内容')); };
+    img.src=url;
+  });
+}
+// 用解析器重建 DOM 来修复模型的非法 SVG：自动闭合未闭合/被截断的标签，把 &nbsp; 等 HTML 命名实体
+// 转成合法引用（XML 只认 &amp; &lt; &gt; &quot; &apos; 和数字实体），剔除 <script>/<foreignObject>/on* 事件，
+// 补齐 xmlns 与宽高，最后序列化成规范 XML。已是合法 SVG 时原样返回。
+function normalizeSvg(svg){
+  if(!svg||typeof svg!=='string') return null;
+  let el=null;
+  try{ // 1) 先按 XML 严格解析：本来就是合法 SVG 就保持原样
+    const doc=new DOMParser().parseFromString(svg,'image/svg+xml');
+    if(doc&&doc.documentElement&&doc.documentElement.nodeName.toLowerCase()==='svg'&&!doc.querySelector('parsererror'))
+      el=doc.documentElement;
+  }catch(e){ el=null; }
+  if(!el){ // 2) 回退：用宽容的 HTML 解析器重建（自动补全标签、解码命名实体）
+    try{
+      const box=document.createElement('div');
+      box.innerHTML=svg;
+      el=box.querySelector('svg');
+    }catch(e){ el=null; }
+  }
+  if(!el) return null;
+  el.querySelectorAll('script,foreignObject').forEach(n=>n.remove());
+  [el].concat([...el.querySelectorAll('*')]).forEach(n=>{
+    [...n.attributes].forEach(a=>{ if(/^on/i.test(a.name)) n.removeAttribute(a.name); });
+  });
+  if(!el.getAttribute('xmlns')) el.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  if(!el.getAttribute('width')) el.setAttribute('width','512');
+  if(!el.getAttribute('height')) el.setAttribute('height','512');
+  try{ return new XMLSerializer().serializeToString(el); }catch(e){ return null; }
+}
+// 渲染 + 自动修复重试：候选依次为「原代码 → XML 文本修复 → 解析器重建 → 两者叠加」
+// 说明：除了"解码失败"，"渲染出来几乎全白"同样算失败——多数是主体没画出来、或动画从空状态起步导致首帧空白
+async function renderSvgRobust(svg, size=512){
+  const fixed=xmlFixups(svg);              // 文本层：未声明前缀 / 裸 & / 重复属性 / 错位 XML 声明
+  const cands=[];
+  const push=(code,repaired)=>{ if(code&&!cands.some(c=>c.code===code)) cands.push({code,repaired:!!repaired}); };
+  push(svg,false);
+  push(fixed,true);
+  push(normalizeSvg(svg),true);
+  if(fixed) push(normalizeSvg(fixed),true);
+  const errs=[]; let diag='';
+  for(const c of cands){
+    try{
+      const img=await renderSvgToPng(c.code,size);
+      if(await isBlankShot({img,w:size,h:size})) throw new Error('画面几乎全白（主体可能没画出来，或动画从空状态起步）');
+      return {img, svg:c.code, repaired:c.repaired};
+    }catch(e){
+      const m=e.message||String(e);
+      errs.push(m);
+      // 第一候选失败的 XML 诊断最有价值：直接告诉我们非法点在哪
+      if(!diag) diag=diagnoseXml(c.code);
+    }
+  }
+  const preview=String(svg||'').replace(/\s+/g,' ').slice(0,140);
+  const why = diag? ('严格 XML 解析器报错：'+diag)
+                  : ('多次修复后仍无法渲染（'+errs.join('；')+'）');
+  throw new Error('SVG 无法渲染：'+why+
+    '｜源码预览：「'+preview+'」，可点「🧩 查看代码」查看完整代码');
+}
+// 评审/自评回复 → {score, comment}。评审偶尔会把 JSON 写到一半就被 max_tokens 掐断
+//（分数在前、点评在后，截断丢的往往是点评尾巴），JSON.parse 失败时再按字段特征兜底抠一遍。
+// ⚠️ 两道防线都是被真实案例逼出来的：带思考的裁判会在回复里复述提示词里的 JSON 模板
+//（{"score":0到100整数,"comment":"不超过40字的中文点评"}），greedy 匹配/无脑抠数字会把
+// 模板当成"0 分、点评=模板原文"——所以必须逐段 parse + 拒绝"数字后紧跟中文"的假分数
+function parseVerdictJson(raw){
+  const t=String(raw||'');
+  // 1) 逐段尝试文中每个 {…}：取第一段"能 JSON.parse 且分数是有效数字"的——
+  //    模板段（0到100整数）不是合法 JSON 会被自然跳过，真正的评分段胜出
+  for(const f of (t.match(/\{[^{}]*\}/g)||[])){
+    try{
+      const p=JSON.parse(f);
+      let sc=p.score;
+      if(typeof sc==='string'&&sc.trim()!==''&&!isNaN(+sc)) sc=+sc;   // 有的模型把分数写成 "85"
+      if(typeof sc==='number'&&sc>=0&&sc<=100) return {score:sc, comment:typeof p.comment==='string'?p.comment:''};
+    }catch(e){}
+  }
+  // 2) 兜底：截断的 JSON 按字段特征抠。分数必须是"纯数字且后面不紧跟中文"——
+  //    模板里 "score":0到100整数 的那个 0 若被抠到，就会产生假 0 分
+  const sm=t.match(/"score"\s*[:：]\s*([0-9]+(?:\.[0-9]+)?)(?![\u4e00-\u9fa5])/);
+  const cm=t.match(/"comment"\s*[:：]\s*"((?:[^"\\]|\\.)*)/);
+  const score=sm? Math.max(0,Math.min(100,Math.round(parseFloat(sm[1])))) : null;
+  if(score===null&&!(cm&&cm[1])) return {score:null, comment:t.slice(0,60)};
+  return {score, comment:(cm&&cm[1])||t.slice(0,60)};
+}
+// 纯文本自审：把 SVG 源码交给模型打分（文本模型也能自评/评审，点评会标注「代码审阅」）
+async function codeReview(base, key, model, prompt, code, proto, rolePrompt, what){
+  const kind=what||'SVG';
+  const text='题目：「'+prompt+'」\n'+rolePrompt+'\n【待审 '+kind+' 代码】\n'+code.slice(0,3000);
+  let raw='';
+  if(proto==='anthropic'){
+    const r=await apiFetch(apiUrl(base,'/messages'), key, {model, max_tokens:400, temperature:0.2, messages:[{role:'user',content:text}]}, 'anthropic');
+    raw=(r.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+  }else{
+    const r=await apiFetch(apiUrl(base,'/chat/completions'), key, {model, max_tokens:400, temperature:0.2, messages:[{role:'user',content:text}]}, 'openai');
+    const msg=(r.choices&&r.choices[0]&&r.choices[0].message)||{};
+    raw=(typeof msg.content==='string'?msg.content:(Array.isArray(msg.content)?msg.content.map(b=>(b&&b.text)||'').join(''):''))||'';
+    if(!raw&&msg.reasoning_content) raw=String(msg.reasoning_content); // 推理模型答在思考区
+  }
+  const pr=parseVerdictJson(raw);
+  const c0=pr.comment||'';
+  return {score: pr.score, comment:/代码审阅/.test(c0)? c0 : c0+'（代码审阅）'};
+}
+/* ---------- 代码出图模式的底层调用：流式 SSE + 非流式双路，尽量不让"答案"丢在路上 ---------- */
+// 原始请求：返回 Response 本体（要读 SSE 流，不能像 apiFetch 那样先 text() 全量读完）
+async function apiFetchRaw(url, key, body, proto){
+  try{
+    return await fetch(url,{method:'POST',headers:authHeaders(key,proto||'openai'),body:JSON.stringify(body)});
+  }catch(e){
+    throw new Error('网络请求失败：'+(e.message||e)+(String(e.message).includes('Failed to fetch')?'（网络不通或该地址不允许浏览器跨域直连）':''));
+  }
+}
+// 非 2xx 时把服务端错误信息整理成可读异常
+async function httpErr(r){
+  const txt=await r.text().catch(()=>'');
+  let detail='';
+  try{ const j=JSON.parse(txt); detail=(j.error&&(typeof j.error==='string'?j.error:j.error.message))||j.message||j.detail||''; }catch(e){ detail=txt.slice(0,160) }
+  return new Error('HTTP '+r.status+(detail?'：'+String(detail).slice(0,200):''));
+}
+// 流式分片解析器：OpenAI（delta.content / delta.reasoning_content）与 Anthropic（content_block_delta）两套格式
+const ssePickOpenAI = j=>{
+  const ch=(j.choices&&j.choices[0])||{}, d=ch.delta||{};
+  const p=Array.isArray(d.content)? d.content.map(b=>(b&&b.text)||'').join('') : (d.content||'');
+  const t=Array.isArray(d.reasoning_content)? d.reasoning_content.join('') : (d.reasoning_content
+        || (d.reasoning&&d.reasoning.content) || '');
+  return {text:p, think:t, usage:j.usage, finish:ch.finish_reason};
+};
+const ssePickAnthropic = j=>{
+  if(j.type==='content_block_delta'){
+    const d=j.delta||{};
+    return {text:d.type==='text_delta'?(d.text||''):'', think:d.type==='thinking_delta'?(d.thinking||''):''};
+  }
+  if(j.type==='message_delta') return {usage:j.usage, finish:(j.delta&&j.delta.stop_reason)||null};
+  if(j.type==='message_start') return {usage:(j.message&&j.message.usage)||null};
+  return {};
+};
+// 流式解析：逐行读 SSE，累加正文与思考内容；即使被截断也能保住已收到的部分
+async function readStream(body, pick, onProgress){
+  const reader=body.getReader(), dec=new TextDecoder();
+  let buf='', raw='', think='', usage=null, chunks=0, finish=null;
+  for(;;){
+    const {done,value}=await reader.read();
+    if(done) break;
+    buf+=dec.decode(value,{stream:true});
+    const lines=buf.split('\n'); buf=lines.pop();              // 最后一行可能不完整，留到下一轮
+    for(const line of lines){
+      const s=line.trim();
+      if(!s||!s.startsWith('data:')) continue;
+      const d=s.slice(5).trim();
+      if(!d||d==='[DONE]') continue;
+      let j; try{ j=JSON.parse(d) }catch(e){ continue }
+      const got=pick(j);
+      if(got.text) raw+=got.text;
+      if(got.think) think+=got.think;
+      if(got.usage) usage=got.usage;
+      if(got.finish) finish=got.finish;
+      if(++chunks%8===0&&onProgress) onProgress(raw.length);
+    }
+  }
+  if(onProgress) onProgress(raw.length);
+  return {raw, think, usage, finish};
+}
+// 统一入口：优先流式（长代码不会被非流式超时/网关截断）；流式参数不被接受时逐级降级，最后才退回非流式
+async function codeChat(c, text, maxt, onProgress){
+  const url=apiUrl(c.genBase, c.genProto==='anthropic'?'/messages':'/chat/completions');
+  const pick=c.genProto==='anthropic'? ssePickAnthropic : ssePickOpenAI;
+  const anth=c.genProto==='anthropic';
+  const ask=(stream,withUsage)=>{
+    const body=anth
+      ? {model:c.genModel, max_tokens:maxt, stream, messages:[{role:'user',content:text}]}
+      : {model:c.genModel, max_tokens:maxt, temperature:0.6, stream, messages:[{role:'user',content:text}]};
+    if(stream&&withUsage&&!anth) body.stream_options={include_usage:true};   // 部分网关不认这个参数 → 下一步去掉它
+    return apiFetchRaw(url, c.genKey, body, c.genProto);
+  };
+  // 依次尝试：流式带用量 → 流式不带用量 → 非流式；4xx 才降级，5xx 交给上层退避重试
+  const tries=[()=>ask(true,true), ()=>ask(true,false), ()=>ask(false,false)];
+  let r=null, lastErr=null;
+  for(let i=0;i<tries.length;i++){
+    r=await withTransientRetry(tries[i]);
+    if(r.ok) break;
+    lastErr=await httpErr(r);
+    if(r.status>=500) throw lastErr;                                 // 服务端故障：不降级，直接抛出重试
+    if(i<tries.length-1) console.warn('[试金石] 第 '+(i+1)+' 种请求形态被拒（HTTP '+r.status+'），自动降级重试');
+  }
+  if(!r||!r.ok) throw lastErr||new Error('请求失败');
+  const ct=String(r.headers.get('content-type')||'');
+  if(/event-stream/i.test(ct)&&r.body&&r.body.getReader) return readStream(r.body, pick, onProgress); // 真流式
+  // 网关无视 stream 参数直接回 JSON：按非流式结构解析（message.content），不浪费这一次调用
+  const txt=await r.text();
+  let j; try{ j=JSON.parse(txt) }catch(e){ throw new Error('HTTP '+r.status+'：'+txt.slice(0,200)) }
+  if(j.error) throw new Error('HTTP '+r.status+'：'+(typeof j.error==='string'?j.error:j.error.message));
+  const got=nonStreamPick(j);
+  return {raw:got.text||'', think:got.think||'', usage:got.usage||j.usage||null, finish:got.finish||null};
+}
+// 非流式响应解析：OpenAI 的 message.content / reasoning_content 与 Anthropic 的 content 块
+function nonStreamPick(j){
+  if(Array.isArray(j.content)){                                     // Anthropic /v1/messages
+    const texts=[], thinks=[];
+    for(const b of j.content){
+      if(!b) continue;
+      if(b.type==='text'&&b.text) texts.push(b.text);
+      else if(b.type==='thinking'&&b.thinking) thinks.push(b.thinking);
+    }
+    return {text:texts.join(''), think:thinks.join(''), usage:j.usage, finish:(j.stop_reason||null)};
+  }
+  const ch=(j.choices&&j.choices[0])||{}, msg=ch.message||{};
+  const text=Array.isArray(msg.content)? msg.content.map(b=>(b&&b.text)||'').join('') : (msg.content||'');
+  const think=Array.isArray(msg.reasoning_content)? msg.reasoning_content.join('')
+            : (msg.reasoning_content||(msg.reasoning&&msg.reasoning.content)||'');
+  return {text, think, usage:j.usage, finish:(ch.finish_reason||null)};
+}
+// 带思考内容的应答：正文优先；正文为空或明显没吐代码时，把模型"想"出来的代码也捞回来。
+// truncated 标记回复是否被输出预算掐断（length / max_tokens）——被掐断的回复哪怕抽得出代码，
+// 也多半是没写完的草稿（模型边想边写的"作品"经常烂尾），codeGen 会据此加预算再要一次
+function pickReply(r){
+  const raw=String(r.raw||''), think=String(r.think||'');
+  const finish=r.finish||null;
+  const truncated=finish==='length'||finish==='max_tokens';
+  const tail=`；思考内容 ${think.length} 字符、正文 ${raw.length} 字符`+(finish?'，结束原因 '+(truncated?'length（输出预算被截断）':finish):'');
+  if(raw.trim()) return {text:raw, tail, truncated};
+  if(think.trim()) return {text:think, tail:'（正文为空，已改用思考内容）'+tail, truncated};
+  return {text:'', tail, truncated};
+}
+// 代码作答通用流程（SVG / 自修共用）：
+//   1) 流式请求，边收边回报进度；2) 抽不出代码就逐级加预算重试；3) 每次都用"正文+思考内容"里最像代码的部分
+//   返回 {code, raw, usage, level, tail}；全部失败则抛出带诊断信息的错误
+async function codeGen(c, text, extract, opts){
+  const o=opts||{};
+  const what=o.what||'代码';
+  const levels=o.levels||[4000,8000];   // 输出预算上限：一份正常 SVG ≈ 1500~2500 tokens；被截断才升档，最坏 12000（省钱优先）
+  let best='', usage=null, tail='', lastRaw='', fallback=null;
+  for(let i=0;i<levels.length;i++){
+    const note=i? '（第 '+(i+1)+' 次尝试，输出预算提到 '+levels[i]+' tokens）':'';
+    if(o.onStep) o.onStep('模型正在输出 '+what+'…'+note);
+    lastPromptText=text+note;   // 记下真正发出去的内容，供弹窗自查"题目到底传对没有"
+    const r=await withTransientRetry(()=>codeChat(c, text+note, levels[i], o.onProgress));
+    const picked=pickReply(r);
+    tail=picked.tail; if(r.usage) usage=r.usage;
+    lastRaw=picked.text||lastRaw;
+    if(lastRaw.length>best.length) best=lastRaw;
+    const code=extract(picked.text);
+    if(code&&picked.truncated){ fallback={code, level:levels[i]}; }      // 截断的回复哪怕抽得出代码也别急着用：多半是没写完的草稿，加预算再要一次
+    else if(code) return {code, raw:picked.text, all:best, usage, level:levels[i], tail};
+    if(o.onFail) o.onFail(picked.text, r);
+  }
+  if(fallback) return {code:fallback.code, raw:best, all:best, usage, level:fallback.level, tail:tail+'（多次尝试都被截断，已采用其中可渲染的版本）'};
+  const err=new Error('模型没有返回可用的 '+what+'（已尝试 '+levels.length+' 次、最高 '+levels[levels.length-1]+' tokens：'+tail+'）');
+  err.raw=best; err.usage=usage;
+  throw err;
+}
+// SVG 模式作答：流式让模型吐 SVG 代码，抽不出来就逐级加预算
+async function svgGen(c, hooks){
+  const r=await codeGen(c, svgGenPrompt(c.prompt), extractSvg, Object.assign({what:'SVG 代码'}, hooks||{}));
+  return {svg:r.code, raw:r.raw, usage:r.usage};
+}
+// 最后手段：把渲染失败的代码 + 真实报错回贴给模型，让它按报错自己修一次
+async function svgRepair(c, badSvg, hooks, reason){
+  const text='下面这段 SVG 代码没能通过校验：'+(reason? String(reason).slice(0,400) : '无法正常渲染或渲染出来是一片空白')+'\n'
+ +'请修复它，使其成为一段完整、可正常渲染、且首帧就有完整画面的合法 SVG。\n'
+ +'特别提醒常见原因：标签未闭合或被截断；使用了未声明的命名空间前缀（如 xlink: 却没写 xmlns:xlink，或自造前缀）；含 &nbsp; 等 HTML 命名实体或未转义的 &；同一标签出现重复属性；XML 声明不在开头。\n'
+ +'硬性要求：用图形元素（path / circle / rect / ellipse / polygon / line）真实画出主体并占据画面主要区域，禁止用 <text> 或 emoji 充当主体；viewBox="0 0 512 512"，坐标落在 0–512 内；标签全部闭合；直接给最终成品，不要输出任何思考、推理过程或解释，只输出修复后的 SVG 代码本身，禁止 markdown 代码块标记。\n'
+ +'【待修复代码】\n'+String(badSvg||'').slice(0,3000);
+  const r=await codeGen(c, text, extractSvg, Object.assign({what:'修复后的 SVG'}, hooks||{}));
+  return r.code;
+}
+// 查看 / 复制代码（SVG 源码弹窗）
+let _promptView=false;   // 弹窗当前是否在显示"提示词"而非"代码"
+function renderCodeModal(){
+  const code=(current&&(current.code||current.svg))||'';
+  const ta=$('svgText');
+  if(_promptView){
+    $('codeTitle').textContent='📨 本次发给模型的提示词';
+    ta.value=lastPromptText||'（本次会话还没有发送过请求）';
+    $('svgMeta').textContent=(lastPromptText? lastPromptText.length+' 字符 · ':'')+((current&&current.model)||'');
+    return;
+  }
+  // 生成失败时存的是模型原始回复，标注清楚，避免被误当成"作品代码"
+  const rawReply=current&&!current.img&&!/^\s*<svg[\s>]/i.test(code);
+  $('codeTitle').textContent='🧩 SVG'+(rawReply?'（模型原始回复）':' 源码');
+  ta.value=code;
+  $('svgMeta').textContent=code.length+' 字符 · '+((current&&current.model)||'');
+}
+function showSvg(){
+  const code=(current&&(current.code||current.svg))||'';
+  if(!current||!code){ toast('该记录没有可查看的源码（图片接口出图或旧记录）'); return; }
+  _promptView=false; renderCodeModal();
+  $('svgBox').style.display='flex';
+}
+// 切到「本次实际发送的提示词」——怀疑题目/提示词有问题时，先看这里
+function togglePromptView(){
+  if(!lastPromptText&&!_promptView){ toast('本次会话还没发送过请求'); return; }
+  _promptView=!_promptView; renderCodeModal();
+}
+function copySvg(){
+  const el=$('svgText'); el.removeAttribute('readonly'); el.select();
+  try{ document.execCommand('copy'); toast('代码已复制'); }catch(e){ toast('复制失败，请手动选择'); }
+  el.setAttribute('readonly','readonly');
+}
+// 大图查看：展示作品的静态截图（点背景关闭，Esc 也可关）
+function openLightbox(){
+  $('lightboxImg').src=$('resultImg').src;
+  $('lightbox').style.display='flex';
+}
+function closeLightbox(){
+  $('lightbox').style.display='none';
+}
+
+// 画面质量检查：整张图几乎纯白 → 认为没画出东西（SVG 渲染失败时触发"让模型自修"的兜底）
+function isBlankShot(shot){
+  try{
+    const cv=document.createElement('canvas'); cv.width=shot.w; cv.height=shot.h;
+    const cx=cv.getContext('2d');
+    const im=new Image();
+    return new Promise(r=>{
+      im.onload=()=>{
+        cx.drawImage(im,0,0);
+        const d=cx.getImageData(0,0,cv.width,cv.height).data;
+        let light=0, total=0;
+        for(let i=0;i<d.length;i+=4*13){ total++; if(d[i]>246&&d[i+1]>246&&d[i+2]>246) light++; }
+        r(total>0 && light/total>0.995);
+      };
+      im.onerror=()=>r(false);
+      im.src=shot.img;
+    });
+  }catch(e){ return Promise.resolve(false); }   // 判不了就不拦，交给后续流程
+}
+
+/* ---------- 主流程 ---------- */
+async function runArena(){
+  const c=getCfg();
+  if(!c.genBase||!c.genKey||!c.genModel||!c.judgeBase||!c.judgeKey||!c.judgeModel){
+    toast('请先完成「接口配置」'); openDrawer(); return;
+  }
+  $('btnGo').disabled=true; $('btnRetry').disabled=true;
+  // 清掉上一次的评分残留：三个标签归零、取消高亮，避免"新检测还没出分，旧的分数还挂在那里"
+  ['revSelf','revJudge','revFinal'].forEach(id=>{ const el=$(id); if(!el) return;
+    el.classList.remove('on'); el.querySelector('b').textContent='—'; });
+  $('verdictFace').textContent='🎨'; $('verdictText').textContent='作答中…'; $('verdictText').style.color='';
+  $('commentText').classList.remove('err');
+  $('commentText').textContent='正在调用生成接口…'; $('usageRow').textContent='';
+  $('placeholder').style.display='none'; $('resultImg').style.display='none'; $('expandBtn').style.display='none';
+  $('imgCard').querySelector('.spinner')?.remove();
+  const sp=document.createElement('div'); sp.className='spinner'; $('imgCard').appendChild(sp);
+  $('modelTag').textContent='考生模型'; $('modelName').textContent=c.genModel;
+  $('judgeName').textContent=c.judgeModel;
+  setCrumb(1);
+  lastSvgSource='';
+  // 生成阶段的实时状态与"原始回复"备份：抽不出代码时能直接把模型原话摆出来给人看
+  let genRaw='', genUsage=null, genTail='';
+  const genHooks={
+    onStep: msg=>{ if(!$('commentText').classList.contains('err')) $('commentText').textContent=msg; },
+    onProgress: n=>{ const el=$('commentText'); if(n&&el&&!el.classList.contains('err')) el.textContent='模型正在输出代码…已收到 '+n+' 字符'+(genUsage?('（'+usageText(genUsage)+'）'):''); },
+    onFail: (text,r)=>{ if(text&&text.length>genRaw.length) genRaw=text; if(r&&r.usage) genUsage=r.usage; }
+  };
+
+  try{
+    /* 第一步：作答（SVG 模式：模型只吐代码，本地渲染；图片模式：按协议分支 + 自动兜底） */
+    let j, img, svgSrc=null, svgRepaired=false;
+    const fallbackErrs=[];
+    try{
+      if(isSvgMode(c)){
+        const g=await svgGen(c, genHooks);
+        svgSrc=g.svg; j={usage:g.usage}; lastSvgSource=svgSrc; genTail=g.tail||'';
+        try{
+          $('commentText').textContent='代码已收到（'+svgSrc.length+' 字符），正在本地渲染…';
+          const rr=await renderSvgRobust(svgSrc, 512);
+          img=rr.img; svgSrc=rr.svg; lastSvgSource=svgSrc; svgRepaired=rr.repaired;
+        }catch(e0){
+          // 自动修复仍失败 → 把报错回贴给模型让它自己修一次，再试
+          const fixed=await svgRepair(c, svgSrc, genHooks, String(e0.message||e0)).catch(()=>null);
+          if(!fixed) throw e0;
+          const rr=await renderSvgRobust(fixed, 512);
+          img=rr.img; svgSrc=rr.svg; lastSvgSource=svgSrc; svgRepaired=true;
+        }
+      }else if(c.genProto==='anthropic'){
+        // Anthropic /v1/messages：图像生成模型经代理返回 content 块
+        const genBody={
+          model:c.genModel, max_tokens:1024,
+          messages:[{role:'user',content:c.prompt}]
+        };
+        try{
+          j=await apiFetch(apiUrl(c.genBase,'/messages'), c.genKey, genBody, 'anthropic');
+          img=extractAnthropicImage(j);
+          if(!img && j.data && (j.data[0]&&(j.data[0].b64_json||j.data[0].url)))
+            img = j.data[0].b64_json? 'data:image/png;base64,'+j.data[0].b64_json : j.data[0].url; // 代理混用 OpenAI 响应结构
+        }catch(e0){
+          fallbackErrs.push('messages 端点：'+String(e0.message||e0).slice(0,90));
+        }
+        if(!img){
+          // messages 无图 → 依次自动兜底：对话出图端点 → 图像生成端点
+          try{
+            const r1=await withTransientRetry(()=>chatGen(c));
+            j=r1.j; img=r1.img;
+            if(!img) fallbackErrs.push('对话端点无图');
+          }catch(e2){ fallbackErrs.push('对话端点：'+String(e2.message||e2).slice(0,90)); }
+          if(!img){
+            try{
+              j=await genWithFallback(c);
+              img=await dataUrlFromApi(j);
+            }catch(e3){ fallbackErrs.push('图像端点：'+String(e3.message||e3).slice(0,90)); }
+          }
+          if(!img){
+            const blocks=(j&&j.content)||[];
+            const types=(blocks.map(b=>b.type).join(',')||'空');
+            const preview=(blocks.filter(b=>b.type==='text').map(b=>(b.text||'').trim().slice(0,80)).join(' | ')||'').slice(0,140);
+            throw new Error('响应 content ['+types+'] 中没有图片'+(preview?'，模型返回：「'+preview+'」':'')+
+              '；自动兜底均失败（'+fallbackErrs.join('；')+'）。'+relayVerdict(preview));
+          }
+        }
+      }else if(c.genProto==='openai-chat'){
+        // OpenAI 对话出图：从 chat/completions 回复中提取图片
+        const r1=await withTransientRetry(()=>chatGen(c));
+        j=r1.j; img=r1.img;
+        if(!img){
+          // 对话无图 → 图像生成端点兜底
+          try{
+            j=await genWithFallback(c);
+            img=await dataUrlFromApi(j);
+          }catch(e3){
+            throw new Error('对话回复中没有图片（回复预览：'+(r1.textPreview||String((j.choices?.[0]?.message?.content)||'')).trim().slice(0,80)+
+              '；图像端点兜底：'+String(e3.message||e3).slice(0,90)+'）。'+relayVerdict(r1.textPreview));
+          }
+        }
+      }else{
+        j=await genWithFallback(c);
+        img = await dataUrlFromApi(j);
+      }
+    }catch(e){
+      const m=String(e.message||e);
+      // 抽出代码失败时把模型原话留档：右侧「查看代码」能直接看到"模型到底回了什么"
+      if(e.raw&&e.raw.trim()&&isSvgMode(c)) lastSvgSource=e.raw;
+      if(e.usage&&!genUsage) genUsage=e.usage;
+      let hint='';
+      if(/HTTP 404/.test(m))
+        hint=' → 404 表示该地址下不存在此协议端点。DeepSeek、Moonshot、GLM 等官方接口只有 OpenAI 兼容端点，请把生成协议切回「OpenAI 格式」；Anthropic 协议仅适用于 Claude 官方或明确支持 /v1/messages 的网关。'
+            +(isLocalMode(c)?'SVG 模式不需要图像模型，任意文本模型即可出图。'
+                            :'另外注意：图片接口出图需要图像生成模型（gpt-image / seedream / flux 等），纯文本模型请把「出图方式」切到 SVG。');
+      else if(isLocalMode(c)&&/没有返回可用的/.test(m))
+        hint=' → 请点右侧「查看代码」看模型到底回了什么：若是一整段文字解释，换个更听话的模型即可；若是 `deepseek-reasoner` 这类推理模型，思考会先吃掉输出预算'
+            +'（现已改为流式请求 + 输出预算逐级提到 8000 tokens，并把思考内容里的代码也捞回来）；仍失败说明模型确实没画出东西，可点「重新生成」或换模型。';
+      throw new Error('【生成阶段】'+m+hint);
+    }
+    if(/^https?:/.test(img)) img = await imgToDataUrl(img);
+
+    $('imgCard').querySelector('.spinner')?.remove();
+    $('resultImg').src=img; $('resultImg').style.display='block'; $('expandBtn').style.display='flex';
+    $('judgeName').textContent=c.genModel+'（自评） → '+c.judgeModel+'（再审）';
+    setCrumb(2);
+    $('verdictFace').textContent='🪞'; $('verdictText').textContent='考生自评中…';
+    $('commentText').textContent=svgSrc?'SVG 已本地渲染成图，考生正在自评…'
+                                     :'考生模型正在查看自己的作品并打分…';
+
+    let small;
+    try{ small = await shrinkImage(img); }catch(e){ small = img; } // 压缩失败则用原图
+    if(c.judgeProto==='anthropic' && !/^data:/.test(small))
+      throw new Error('【评审阶段】Anthropic 协议需要 base64 图片，但当前图片为 URL 且压缩失败，请换用返回 base64 的生成接口');
+    const b64 = /^data:/.test(small)? small.split(',')[1] : null;
+    const mediaType = /^data:/.test(small)? small.slice(5, small.indexOf(';')) : 'image/jpeg';
+    const judgeText='题目：「'+c.prompt+'」\n'+JUDGE_PROMPT;
+
+    /* 第二步：自评（考生模型评自己的图） */
+    let self={score:null, comment:''};
+    try{
+      let rawSelf='';
+      if(c.genProto==='anthropic'){
+        const rSelf=await apiFetch(apiUrl(c.genBase,'/messages'), c.genKey, {
+          model:c.genModel, max_tokens:600, temperature:0.2,
+          messages:[{role:'user',content:[
+            {type:'text',text:judgeText},
+            {type:'image',source:{type:'base64',media_type:mediaType,data:b64}}
+          ]}]
+        }, 'anthropic');
+        rawSelf=(rSelf.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+      }else{
+        // openai / openai-chat 协议都走对话端点自评；响应形状用 nonStreamPick 兼容（content 数组 / reasoning_content 等）
+        const rSelf=await apiFetch(apiUrl(c.genBase,'/chat/completions'), c.genKey, {
+          model:c.genModel,
+          messages:[{role:'user',content:[
+            {type:'text',text:judgeText},
+            {type:'image_url',image_url:{url:small}}
+          ]}],
+          max_tokens:600, temperature:0.2
+        }, 'openai');
+        const got=nonStreamPick(rSelf);
+        rawSelf=got.text||got.think||'';
+      }
+      self=parseVerdictJson(rawSelf);
+    }catch(e){
+      const m=String(e.message||e).slice(0,80);
+      self={score:null, comment:(svgSrc?'（考生看图自评失败：':'（该考生不支持看图或自评失败：')+m+'）'};
+    }
+    /* SVG 模式兜底：考生不能看图时，把源码交给它自己做文本自审 */
+    if(typeof self.score!=='number'){
+      const task=svgSrc? {code:svgSrc, role:JUDGE_PROMPT_SVG, what:'SVG'} : null;
+      if(task){
+        try{
+          const s2=await codeReview(c.genBase,c.genKey,c.genModel,c.prompt,task.code,c.genProto,task.role,task.what);
+          if(typeof s2.score==='number') self={score:s2.score, comment:s2.comment};
+        }catch(e){}
+      }
+    }
+
+    /* 第三步：再审（考官评审） */
+    $('verdictFace').textContent='🔍'; $('verdictText').textContent='考官再审中…';
+    $('commentText').textContent='裁判模型正在独立查看图片并打分…';
+    let jj=null, rawText='';
+    let judge={score:null, comment:''}, judgeErr='';
+    try{
+      // 裁判调用：有的模型/中转站会把 max_tokens 预算整个花在思考上、返回空正文（此前 300 token
+      // 正好打满就"再审无效"了）。对策：预算提到 800 + 响应形状用 nonStreamPick 兼容 +
+      // 空回复自动重试一次；重试仍拿不到有效评分则直接报错（不做「代码审阅」兜底，见下）。
+      const askJudge=()=> c.judgeProto==='anthropic'
+        ? apiFetch(apiUrl(c.judgeBase,'/messages'), c.judgeKey, {
+            model:c.judgeModel, max_tokens:800, temperature:0.2,
+            messages:[{role:'user',content:[
+              {type:'text',text:'题目：「'+c.prompt+'」\n'+JUDGE_PROMPT},
+              {type:'image',source:{type:'base64',media_type:mediaType,data:b64}}
+            ]}]
+          }, 'anthropic')
+        : apiFetch(apiUrl(c.judgeBase,'/chat/completions'), c.judgeKey, {
+            model:c.judgeModel,
+            messages:[{role:'user',content:[
+              {type:'text',text:'题目：「'+c.prompt+'」\n'+JUDGE_PROMPT},
+              {type:'image_url',image_url:{url:small}}
+            ]}],
+            max_tokens:800, temperature:0.2
+          }, 'openai');
+      for(let attempt=0; attempt<2; attempt++){
+        jj=await askJudge();
+        const got=nonStreamPick(jj);       // 兼容 content 数组 / reasoning_content / reasoning.content
+        rawText=((got.text||'')+'\n'+(got.think||'')).trim();
+        judge=parseVerdictJson(rawText);
+        if(typeof judge.score==='number') break;   // 没拿到有效评分（如思考把预算烧光）也再试一次
+      }
+    }catch(e){ rawText=''; judgeErr=String(e.message||e); }
+    // 再审只认图：考官直接看渲染出的图片打分，绝不退化为「代码审阅」——
+    // 审代码判断不了真实渲染效果（实测曾把渲染正常的作品误判成 0 分）。看不了图的模型请直接换。
+    if(typeof judge.score!=='number'){
+      let m='【评审阶段】未能从裁判回复中拿到有效评分（再审只看图、不审代码）'
+        +(judgeErr? '（'+judgeErr.slice(0,120)+'）'
+        : rawText? '，裁判回复：「'+rawText.slice(0,120)+'」'
+        : '（模型返回了空回复，已自动重试过一次）');
+      m+=judgeErr
+        ? (/image|vision|visual|multimodal|多模态|图像|图片|视觉/i.test(judgeErr)? '（提示：当前评审模型不支持看图，请换支持视觉的评审模型）' : '')
+        : '（提示：评审模型可能把输出预算花在了思考上没来得及作答，可重试，或换个更听话的视觉评审模型）';
+      throw new Error(m);
+    }
+
+    // 综合评分：再审（考官）权重 80%、自评 20%；只有一边可用则取该边
+    const hasSelf=typeof self.score==='number', hasJudge=typeof judge.score==='number';
+    const finalScore = (hasSelf&&hasJudge)? Math.round(judge.score*0.8+self.score*0.2)
+                     : hasJudge? judge.score : hasSelf? self.score : null;
+    const emoji = scoreEmoji(finalScore);
+    /* 用量展示（随记录存档，回看切换时跟着记录走） */
+    const genU=j.usage? '生成 '+usageText(j.usage) : '';
+    const jrU=jj&&jj.usage? ' · 再审 '+usageText(jj.usage) : '';
+    const codeU = svgSrc? ' · SVG 源码 '+svgSrc.length+' 字符（本地渲染，未消耗图像 Token'+(svgRepaired?'，已自动修复模型输出':'')+'）' : '';
+    current={ id:Date.now(), type:'img', mode:svgSrc?'svg':'image', model:c.genModel, judge:c.judgeModel, img,
+              code:svgSrc||'', svg:svgSrc||'', repaired:!!svgRepaired,
+              score:finalScore, selfScore:self.score, judgeScore:judge.score,
+              selfComment:self.comment, judgeComment:judge.comment,
+              comment:judge.comment||self.comment, emoji,
+              usage:(genU+jrU+codeU).slice(0,200),
+              time:new Date().toLocaleString('zh-CN') };
+    if($('btnSvg')) $('btnSvg').style.display = svgSrc?'':'none';
+    history.unshift(current);
+    trimHistory();
+    await persist();
+    renderGallery(); renderRecords(); applyVerdict(current,'final');
+    $('usageRow').textContent=current.usage;
+    setCrumb(3);
+  }catch(err){
+    $('imgCard').querySelector('.spinner')?.remove();
+    $('placeholder').style.display='block';
+    $('resultImg').style.display='none'; $('expandBtn').style.display='none';   // 别让上一次的图和占位文字挤在同一行
+    $('verdictFace').textContent='💥'; $('verdictText').textContent='出错了';
+    $('verdictText').style.color='var(--danger)';
+    $('commentText').classList.add('err');
+    $('commentText').textContent=err.message||String(err);
+    // 失败也计入战绩（掺水监控需要失败样本）；若已拿到源码则一并保留，便于查看/复制排查
+    try{
+      const fc=getCfg(), fm=genModeOf(fc);
+      const failRec={id:Date.now(),type:'img',mode:isLocalMode(fc)?fm:'image',model:fc.genModel||'?',judge:fc.judgeModel||'?',img:'',
+        code:lastSvgSource||'', svg:lastSvgSource||'', score:null,emoji:'💥',
+        comment:String(err.message||err).slice(0,120),time:new Date().toLocaleString('zh-CN')};
+      history.unshift(failRec);
+      trimHistory();
+      current=failRec; // 让右侧「查看代码」按钮在失败时也能打开源码
+      if($('btnSvg')) $('btnSvg').style.display=failRec.code?'':'none';
+      persist(); renderGallery(); renderRecords();
+    }catch(e){}
+  }finally{
+    $('btnGo').disabled=false; $('btnRetry').disabled=false;
+  }
+}
+
+function scoreEmoji(s){
+  if(s===null) return '🤔';
+  if(s<60) return '😢'; if(s<80) return '😕'; if(s<90) return '😐';
+  if(s<95) return '😊'; return '🤩';
+}
+// Token 用量格式化（OpenAI 与 Anthropic 两套字段名都兼容），全页面共用一处
+function usageText(u){
+  if(!u) return '';
+  const i=u.prompt_tokens!==undefined?u.prompt_tokens:u.input_tokens;
+  const o=u.completion_tokens!==undefined?u.completion_tokens:u.output_tokens;
+  return 'in:'+(i===undefined?'?':i)+' out:'+(o===undefined?'?':o);
+}
+function verdictWord(s){
+  if(s===null) return '看不懂…';
+  if(s<60) return '什么垃圾...';      // 低于 60：垃圾
+  if(s<80) return '不行啊…';          // 60~79：不行
+  if(s<90) return '勉强能看';         // 80~89：勉强能看
+  if(s<95) return '还挺像样';         // 90~94：还挺像样
+  return '牛逼了！！！';              // 95+：真牛
+}
+function applyVerdict(r, view){
+  // r 记录含 selfScore/judgeScore 与两份点评；view='self'|'judge'|'final'
+  const has = s => typeof s==='number';
+  // 旧版记录只有考官分：归一化为再审分
+  if(!has(r.selfScore)&&!has(r.judgeScore)&&has(r.score)) r.judgeScore=r.score;
+  view = view || (r._view) || 'final';
+  r._view = view;
+  // 综合分只算一次、恒定不变（此前放在 pick 里，点自评/再审时综合标签会跟着显示别的分数）
+  const finalScore=(has(r.selfScore)&&has(r.judgeScore))?Math.round(r.judgeScore*0.8+r.selfScore*0.2)   // 再审 80% / 自评 20%
+                  :(has(r.selfScore)?r.selfScore:r.judgeScore);
+  const pick = view==='self'? {score:r.selfScore, comment:r.selfComment, name:'自评'}
+             : view==='judge'? {score:r.judgeScore, comment:r.judgeComment, name:'再审'}
+             : {score:finalScore, comment:r.judgeComment||r.selfComment, name:'综合'};
+  // 切换条状态与分数：三个标签各显各的分，互不跟随
+  const tab=(id,sc,on)=>{ const el=$(id); if(!el) return; el.classList.toggle('on',!!on);
+    el.querySelector('b').textContent = has(sc)? sc+'分' : '—'; };
+  tab('revSelf', r.selfScore, view==='self');
+  tab('revJudge', r.judgeScore, view==='judge');
+  tab('revFinal', finalScore, view==='final');
+  $('verdictFace').textContent=r.emoji||scoreEmoji(pick.score);
+  $('verdictText').style.color='';
+  $('commentText').classList.remove('err');
+  $('verdictText').innerHTML=verdictWord(pick.score)+(has(pick.score)?'<span class="score-chip">'+pick.score+' 分</span>':'');
+  $('commentText').textContent=pick.comment||'（评审未给出点评）';
+}
+// 切换条点击事件（委托，兼容历史记录回看）
+document.addEventListener('click',e=>{
+  const t=e.target.closest('.rev-tab'); if(!t||!current) return;
+  if($('btnGo').disabled) return;   // 检测进行中：评分条已清零，别把旧记录的分数画回去
+  const view=t.id==='revSelf'?'self':t.id==='revJudge'?'judge':'final';
+  applyVerdict(current, view);
+});
+
+/* ---------- 画廊 / 记录 ---------- */
+// 图片考场的底部画廊：只展示图片检测记录（文本记录归文本考场自己的记录区）
+function renderGallery(){
+  const g=$('gallery');
+  const imgs=history.filter(h=>h.type!=='text');
+  // 检测统计（只统计图片记录）
+  const st=$('statsRow');
+  if(st){
+    if(!imgs.length){ st.innerHTML=''; }
+    else{
+      const ok=imgs.filter(h=>h.score!==null);
+      const last=ok[0];
+      st.innerHTML='📊 图片检测：共 <b>'+imgs.length+'</b> 次，成功 <b>'+ok.length+
+        '</b> 次（成功率 '+(imgs.length?Math.round(ok.length/imgs.length*100):0)+'%）'+
+        (last?'，最近成功：'+esc(last.time):'，尚无成功记录')+
+        ' · 页面保持打开可配合「自动复测」持续监控';
+    }
+  }
+  if(!imgs.length){ g.innerHTML='<div class="g-empty">图片检测战绩将显示在这里（本地保存最近 24 条，完整列表见「能力记录」页）</div>'; return; }
+  g.innerHTML='';
+  imgs.forEach(h=>{
+    const d=document.createElement('div');
+    d.className='g-card'+(current&&h.id===current.id?' sel':'');
+    const thumb=h.img
+      ? '<img class="g-thumb" src="'+h.img+'">'
+      : '<div class="g-thumb" style="display:flex;align-items:center;justify-content:center;font-size:26px">💥</div>';
+    const sub=(h.score!==null?h.score+'分 · ':'')+'<span title="'+esc(h.time)+'">'+esc((h.comment||'—').slice(0,30))+'</span>';
+    d.innerHTML='<div class="g-head"><div class="g-face">'+h.emoji+'</div><div class="g-name">'+esc(h.model)+'</div></div>'+
+      thumb+'<div class="g-comment">'+(h.mode==='html'?'🌐 ':'')+sub+'</div>';
+    d.onclick=()=>loadRecord(h);
+    g.appendChild(d);
+  });
+}
+// 文本考场的记录区：只展示文本检测记录
+function renderTextGallery(){
+  const g=$('textGallery'); if(!g) return;
+  const txts=history.filter(h=>h.type==='text');
+  const st=$('textStatsRow');
+  if(st){
+    if(!txts.length){ st.innerHTML=''; }
+    else{
+      const avg=Math.round(txts.reduce((a,h)=>a+(h.score||0),0)/txts.length);
+      const anom=txts.filter(h=>(h.comment||'').includes('计费异常')).length;
+      st.innerHTML='📊 文本检测：共 <b>'+txts.length+'</b> 次，平均通过率 <b>'+avg+'%</b>'+
+        (anom?' · <span style="color:var(--danger)">🚨 计费异常 '+anom+' 次</span>':'')+
+        ' · 判分在本地完成，评审 Token 消耗为 0';
+    }
+  }
+  if(!txts.length){ g.innerHTML='<div class="g-empty">文本检测记录将显示在这里（本地保存最近 24 条，完整列表见「能力记录」页）</div>'; return; }
+  g.innerHTML='';
+  txts.forEach(h=>{
+    const d=document.createElement('div');
+    d.className='g-card'+(current&&h.id===current.id?' sel':'');
+    const bad=typeof h.score==='number'&&h.score<60;
+    d.innerHTML='<div class="g-head"><div class="g-face">'+(h.emoji||'📝')+'</div><div class="g-name">'+esc(h.model)+'</div></div>'+
+      '<div class="g-thumb" style="display:flex;align-items:center;justify-content:center;font-size:26px">📝</div>'+
+      '<div class="g-comment"><span style="color:'+(bad?'var(--danger)':'inherit')+'">通过率 '+(typeof h.score==='number'?h.score+'%':'—')+'</span> · <span title="'+esc(h.time)+'">'+esc((h.comment||'—').slice(0,34))+'</span></div>';
+    d.onclick=()=>loadRecord(h);
+    g.appendChild(d);
+  });
+}
+function esc(s){ return (s===undefined||s===null)?'':String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])) }
+
+/* ---------- 能力记录页 ---------- */
+function trimHistory(){ if(history.length>24) history.length=24; }
+// 综合分：自评/再审取平均，缺一边用另一边；文本记录直接用通过率
+function compositeScore(h){
+  const has=s=>typeof s==='number';
+  if(h.type==='text') return (typeof h.score==='number')?h.score:null;
+  if(has(h.selfScore)&&has(h.judgeScore)) return Math.round(h.judgeScore*0.8+h.selfScore*0.2);   // 再审 80% / 自评 20%
+  if(has(h.selfScore)) return h.selfScore;
+  if(has(h.judgeScore)) return h.judgeScore;
+  return (typeof h.score==='number')?h.score:null;
+}
+// 记录归类：text=文本检测 / img=图片检测(有图) / fail=失败记录(无图)
+function recKind(h){
+  if(h.type==='text') return 'text';
+  return h.img?'img':'fail';
+}
+function statCard(num,lbl,warn){
+  return '<div class="rec-stat'+(warn?' warn':'')+'"><div class="num">'+num+'</div><div class="lbl">'+lbl+'</div></div>';
+}
+let recFilter='all';
+$('recChips').addEventListener('click',e=>{
+  const c=e.target.closest('.chip'); if(!c) return;
+  recFilter=c.dataset.f;
+  $('recChips').querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));
+  renderRecords();
+});
+function renderRecords(){
+  const imgs=history.filter(h=>recKind(h)==='img'),
+        ok=imgs.filter(h=>h.score!==null),
+        txts=history.filter(h=>recKind(h)==='text'),
+        fails=history.filter(h=>recKind(h)==='fail'),
+        anom=history.filter(h=>(h.comment||'').includes('计费异常')).length,
+        avgTxt=txts.length?Math.round(txts.reduce((a,h)=>a+(h.score||0),0)/txts.length):null;
+  $('recStats').innerHTML=
+    statCard(history.length,'累计检测次数')+
+    statCard(imgs.length,'图片检测'+(imgs.length?'（成功 '+ok.length+' 次 · 成功率 '+Math.round(ok.length/imgs.length*100)+'%）':'（尚无记录）'))+
+    statCard(txts.length?avgTxt+'%':'—','文本平均通过率'+(txts.length?'（'+txts.length+' 次检测）':'（尚无记录）'))+
+    statCard(fails.length+anom,'失败 / 计费异常'+(anom?'（含 '+anom+' 次计费异常）':''),(fails.length||anom));
+  let list=history;
+  if(recFilter==='img') list=imgs;
+  else if(recFilter==='text') list=txts;
+  else if(recFilter==='fail') list=fails.concat(history.filter(h=>(h.comment||'').includes('计费异常')&&recKind(h)!=='fail'));
+  const grid=$('recGrid');
+  if(!list.length){
+    grid.innerHTML='<div class="rec-empty">'+(recFilter==='all'?'暂无检测记录，去「图片考场」或「文本考场」跑一次吧':'该筛选条件下暂无记录')+'</div>';
+    return;
+  }
+  grid.innerHTML='';
+  list.forEach(h=>grid.appendChild(recCard(h)));
+}
+function recCard(h){
+  const kind=recKind(h), mi=modeInfo(h);
+  const d=document.createElement('div'); d.className='rec-card';
+  const badge= kind==='fail' ? '<span class="rec-badge fail">💥 失败</span>'
+                             : '<span class="rec-badge '+mi.cls+'">'+mi.badge+'</span>';
+  const thumb= kind==='img' ? '<img class="rec-thumb" src="'+h.img+'" alt="">'
+             : '<div class="rec-thumb ph">'+(kind==='text'?'📝':'💥')+'</div>';
+  const comp=compositeScore(h);
+  const chip=(lbl,v,bad)=>'<span class="rec-score">'+lbl+' <b'+(bad?' class="bad"':'')+'>'+(typeof v==='number'?v:'—')+'</b></span>';
+  const scores= kind==='fail' ? '' : (kind==='text'
+    ? chip('通过率',h.score,h.score!==null&&h.score<60)
+    : chip('自评',h.selfScore)+chip('再审',h.judgeScore)+chip('综合',comp,comp!==null&&comp<50));
+  d.innerHTML='<div class="rec-title">'+(h.emoji||'🤖')+' <span>'+esc(h.model||'未知模型')+'</span>'+badge+'</div>'+
+    thumb+'<div class="rec-score-row">'+scores+'</div>'+
+    '<div class="rec-comment">'+(esc((h.comment||'').slice(0,140))||'（无点评）')+'</div>'+
+    '<div class="rec-time">🕘 '+esc(h.time)+(h.judge?' · 评审：'+esc(h.judge):'')+'</div>';
+  d.title='点击回到考场回看详情';
+  d.onclick=()=>loadRecord(h);
+  return d;
+}
+// 从记录页/画廊点卡片 → 回到对应考场回看（文本记录→文本考场；图片记录→图片考场）
+function loadRecord(h){
+  const isText=h.type==='text';
+  showView(isText?'text':'arena');
+  current=h;
+  if(isText){ renderTextGallery(); renderGallery(); return; } // 文本记录在文本考场自己的记录区里高亮回看
+  if($('btnSvg')) $('btnSvg').style.display = (h.code||h.svg)?'':'none';
+  if(h.img){ $('resultImg').src=h.img; $('resultImg').style.display='block'; $('placeholder').style.display='none'; $('expandBtn').style.display='flex'; }
+  else { $('resultImg').style.display='none'; $('expandBtn').style.display='none';
+    $('placeholder').innerHTML='💥 失败记录<br>'+esc((h.comment||'').slice(0,60));
+    $('placeholder').style.display='block'; }
+  $('modelTag').textContent='考生模型'; $('modelName').textContent=h.model;
+  $('judgeName').textContent=h.judge||'—';
+  $('usageRow').textContent=h.usage||'';   // 用量跟着记录走（老记录没有该字段则留空）
+  applyVerdict(h); renderGallery();
+}
+
+async function clearHistory(){
+  if(!history.length){ toast('暂无记录'); return }
+  if(await uiConfirm('清空全部记录', '确定清空全部本地战绩记录？此操作不影响接口配置，且不可恢复。')){
+    history=[]; current=null; persist(); loadSettings();
+    $('resultImg').style.display='none'; $('placeholder').style.display='block'; $('expandBtn').style.display='none';
+    $('usageRow').textContent='';
+    // 考场面板一并回到初始状态：评分标签、表情、评语、模型名都清掉，别留着上一次的结果
+    ['revSelf','revJudge','revFinal'].forEach(id=>{ const el=$(id); if(!el) return;
+      el.classList.remove('on'); el.querySelector('b').textContent='—'; });
+    $('verdictFace').textContent='🤖'; $('verdictText').textContent='等待作答…'; $('verdictText').style.color='';
+    $('commentText').classList.remove('err'); $('commentText').textContent='配置好「生成接口」和「评审接口」后即可开考。评审模型将独立对生成图片打分。';
+    $('modelTag').textContent='考生模型'; $('modelName').textContent='—'; $('judgeName').textContent='—';
+    syncModeHint();   // current 已置空：恢复"尚无作品…"占位文案
+    toast('已清空');
+  }
+}
+
+/* ---------- Tab / 大图 ---------- */
+$('expandBtn').onclick=openLightbox;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('lightbox').style.display==='flex') closeLightbox(); });
+
+/* ---------- 文本考场（掺水检测，本地判分） ---------- */
+function showView(v){
+  const isText=v==='text', isRec=v==='records';
+  $('textExam').style.display=isText?'block':'none';
+  $('recordsPage').style.display=isRec?'block':'none';
+  const arenas=document.querySelectorAll('.arena');
+  if(arenas[0]) arenas[0].style.display=(isText||isRec)?'none':'grid';
+  const gw=document.querySelector('.gallery-wrap');
+  if(gw) gw.style.display=(isText||isRec)?'none':'block';
+  const sb=document.querySelector('.subbar');
+  if(sb) sb.style.display=isRec?'none':'flex';
+  $('tabArena').classList.toggle('active',!isText&&!isRec);
+  $('tabText').classList.toggle('active',isText);
+  $('tabHistory').classList.toggle('active',isRec);
+  if(isRec) renderRecords();
+  if(isText) renderTextGallery();
+  if(!isText&&!isRec) renderGallery();
+}
+$('tabArena').onclick=()=>showView('arena');
+$('tabText').onclick=()=>showView('text');
+$('tabHistory').onclick=()=>showView('records');
+
+// 统一的文本对话调用（自动适配协议），返回 {text, usage}
+async function textCall(cfg, messages, maxTokens, extra){
+  const one = async (mt)=>{
+    if(cfg.genProto==='anthropic'){
+      const j=await apiFetch(apiUrl(cfg.genBase,'/messages'), cfg.genKey,
+        {model:cfg.genModel, max_tokens:mt, messages, ...(extra||{})}, 'anthropic');
+      return {text:(j.content||[]).filter(b=>b.type==='text').map(b=>b.text).join(''), reasoning:'', usage:j.usage};
+    }
+    const j=await apiFetch(apiUrl(cfg.genBase,'/chat/completions'), cfg.genKey,
+      {model:cfg.genModel, messages, max_tokens:mt, ...(extra||{})}, 'openai');
+    const msg=(j.choices&&j.choices[0]&&j.choices[0].message)||{};
+    return {text:msg.content||'', reasoning:msg.reasoning_content||'', usage:j.usage};
+  };
+  let r=await one(maxTokens);
+  // 推理型模型（DeepSeek-R1 系等）预算饿死：content 为空但 completion 已打满预算（token 全烧在思考上）
+  // 参照 llm-honesty-probe：这是调用方参数问题，不是模型能力问题 → 自动加大预算重试一次
+  const spent=(r.usage&&(r.usage.completion_tokens||r.usage.output_tokens))||0;
+  if(!r.text && spent>=maxTokens && maxTokens<1024){
+    const bigger=Math.min(1024, maxTokens*10);
+    try{
+      const r2=await one(bigger);
+      r2.retried=bigger;
+      return r2;
+    }catch(e){ /* 加码重试失败则返回首次结果 */ }
+  }
+  return r;
+}
+
+const PROBES=[
+  {id:'cmp', icon:'🧮', name:'数值比较（经典陷阱）', q:'9.11 和 9.8 哪个数更大？只回答较大的那个数，不要任何其他文字。', max:20,
+   check:t=>/9\.8/.test(t)&&!/9\.11\s*(更|比|大)/.test(t), expect:'9.8'},
+  {id:'mul', icon:'✖️', name:'两位数乘法', q:'计算 17×23 等于多少？只回答数字。', max:20,
+   check:t=>/391/.test(t), expect:'391'},
+  {id:'crt', icon:'🐔', name:'鸡兔同笼（推理）', q:'鸡兔同笼，头共10个，脚共28只，问鸡和兔各几只？用一句话回答。', max:120,
+   check:t=>/6/.test(t)&&/4/.test(t), expect:'鸡6只、兔4只'},
+  {id:'knw', icon:'🌍', name:'冷门知识', q:'ISO 3166-1 标准 alpha-2 代码为 CH 的国家，中文名是什么？只回答国名。', max:20,
+   check:t=>/瑞士/.test(t), expect:'瑞士'},
+  {id:'ins', icon:'📋', name:'严格指令遵循', q:'请只输出这五个字符：HELLO', max:20,
+   check:t=>/HELLO/.test(t.trim()), expect:'HELLO（逐字符精确）'},
+  {id:'cmpchain', icon:'🔗', name:'传递推理链', q:'已知 A>B，B>C，C>D，D>E。谁最小？只回答那个字母。', max:30,
+   check:t=>/\bE\b/.test(t)&&!/\bA\b/.test(t), expect:'E'},
+  {id:'pct', icon:'💰', name:'涨跌百分比', q:'100 元先涨价 20%，再降价 20%，最终多少元？只回答数字。', max:30,
+   check:t=>/96/.test(t)&&!/1096/.test(t), expect:'96'},
+  {id:'java', icon:'☕', name:'Java 变量赋值', q:'Java 中：int a=10,b=20; a=b; b=a; 之后 a 和 b 分别是多少？只回答两个数字。', max:30,
+   check:t=>((t.match(/20/g)||[]).length>=2), expect:'20, 20'},
+  {id:'evlp', icon:'⚡', name:'JS 事件循环', q:'以下代码输出顺序是什么？只回答数字顺序。\nconsole.log(1);\nsetTimeout(()=>console.log(2),0);\nPromise.resolve().then(()=>console.log(3));\nconsole.log(4);', max:40,
+   check:t=>{ const s=t.replace(/\D/g,''); return /^1432$/.test(s)||/^1432/.test(s)&&s.length<=5; }, expect:'1 4 3 2'},
+  {id:'sql', icon:'🗄️', name:'SQL 连接与空值', q:'要求查询所有客户，即使没有订单也显示，订单金额汇总为 0。应使用 INNER JOIN 还是 LEFT JOIN？金额为空用什么函数处理？一句话回答。', max:60,
+   check:t=>/LEFT\s*JOIN/i.test(t)&&/(COALESCE|IFNULL|NVL|ISNULL)/i.test(t), expect:'LEFT JOIN + COALESCE'}
+];
+
+function probeCard(p){
+  const d=document.createElement('div'); d.className='probe';
+  const head='<div class="p-head"><span class="p-icon">'+p.icon+'</span><span class="p-name">'+p.name+'</span>'+
+    '<span class="p-badge" id="pb_'+p.id+'">待测</span></div>';
+  // 普通考题显示“题目：…”，无 q 的探测卡显示说明文字（避免 undefined）
+  const detail='<div class="p-detail" id="pd_'+p.id+'">'+(p.q?'题目：'+esc(p.q):'发送固定样句并读取 usage 计数与参数兼容性')+'</div>';
+  d.innerHTML=head+detail;
+  return d;
+}
+function setProbe(id, ok, detail, badgeText){
+  const b=$('pb_'+id), dt=$('pd_'+id);
+  if(b){ b.className='p-badge '+(ok===null?'':(ok?'ok':'bad')); b.textContent=badgeText; }
+  if(dt) dt.innerHTML+=detail;
+}
+
+async function runTextExam(){
+  const c=getCfg();
+  if(!c.genBase||!c.genKey||!c.genModel){ toast('文本检测只需「生成接口(考生)」配置，请先填写'); openDrawer(); return; }
+  $('btnTextExam').disabled=true;
+  const list=$('probeList');
+  list.innerHTML='<div class="exam-summary mid" id="examRunning">检测进行中…（10 道题 + 3 项指纹，预计 1 分钟内完成）</div>';
+  let passCount=0, totalTokens=0, errCount=0;
+
+  for(const p of PROBES){
+    list.appendChild(probeCard(p));
+    try{
+      const r=await textCall(c,[{role:'user',content:p.q}],p.max);
+      const t=(r.text||'').trim();
+      totalTokens+=(r.usage&&(r.usage.total_tokens||((r.usage.prompt_tokens||0)+(r.usage.completion_tokens||0))))||0;
+      const pass=p.check(t);
+      if(pass) passCount++;
+      let hint='';
+      if(r.retried) hint+='　<span style="color:#b45309;font-size:11px">（推理模型思考耗尽了首轮预算，已自动加码到 '+r.retried+' tokens 重试）</span>';
+      if(!t && r.reasoning) hint+='　<span style="color:#b45309;font-size:11px">（该模型只返回了思考内容 reasoning_content，正式回答为空，可能需更大预算）</span>';
+      setProbe(p.id, pass, '<br>模型回答：<b>'+esc(t.slice(0,120)||'(空)')+'</b>　期望：<b>'+esc(p.expect)+'</b>'+hint, pass?'✓ 通过':'✗ 不符');
+    }catch(e){
+      errCount++;
+      setProbe(p.id, false, '<br>调用失败：<b>'+esc(String(e.message||e).slice(0,120))+'</b>', '✗ 出错');
+    }
+  }
+
+  /* 指纹探测（几乎不耗 Token） */
+  list.appendChild(probeCard({id:'fp', icon:'🔑', name:'API 指纹（Token 计数 / 参数兼容性）'}));
+  let fpDetail='', tokenAnomaly=false;
+  try{
+    const zh=await textCall(c,[{role:'user',content:'人工智能正在改变世界。'}],1);
+    const en=await textCall(c,[{role:'user',content:'The quick brown fox jumps over the lazy dog.'}],1);
+    totalTokens+=(zh.usage&&((zh.usage.total_tokens)||((zh.usage.prompt_tokens||0)+(zh.usage.completion_tokens||0))))||0;
+    totalTokens+=(en.usage&&((en.usage.total_tokens)||((en.usage.prompt_tokens||0)+(en.usage.completion_tokens||0))))||0;
+    const uTok=u=>u&&(u.prompt_tokens!==undefined?u.prompt_tokens:u.input_tokens);
+    const zhTok=uTok(zh.usage), enTok=uTok(en.usage);
+    if(zhTok||enTok){
+      const ratios=[];
+      if(zhTok){ const r=zhTok/(11*1.6+10); ratios.push(r); // 中文约1.6 token/字 + 接口框架开销
+        fpDetail+='<br>中文样句(11字)计费 <b>'+zhTok+'</b> tokens（为合理值的 '+r.toFixed(1)+'x'+(r>4?'，⚠️ 严重异常':r>2?'，⚠️ 偏高':'，✓ 正常')+'）'; }
+      if(enTok){ const r=enTok/(45/4+10); ratios.push(r); // 英文约4字符/token + 开销
+        fpDetail+='<br>英文样句(45字符)计费 <b>'+enTok+'</b> tokens（为合理值的 '+r.toFixed(1)+'x'+(r>4?'，⚠️ 严重异常':r>2?'，⚠️ 偏高':'，✓ 正常')+'）'; }
+      const worst=Math.max(...ratios);
+      if(worst>4){
+        tokenAnomaly=true;
+        fpDetail+='<br><span style="color:var(--danger);font-weight:600">🚨 多计费警告：样句实际只值十几 tokens，接口却计费数十/数百倍——典型"账单掺水"，用越久亏越多，建议截图留证找站长核实</span>';
+      }else if(worst>2){
+        tokenAnomaly=true;
+        fpDetail+='<br><span style="color:#b45309;font-weight:600">⚠️ 计费偏高：token 计数明显高于合理范围，可能被凑整/加价，建议多次复测确认</span>';
+      }else{
+        fpDetail+='<br>Token 计数在合理范围内（含接口框架开销约 10 tokens）';
+      }
+    }
+  }catch(e){ fpDetail+='<br>Token 计数指纹获取失败：'+esc(String(e.message||e).slice(0,80)); }
+
+  if(c.genProto!=='anthropic'){
+    try{
+      await textCall(c,[{role:'user',content:'hi'}],1,{temperature:1.5});
+      fpDetail+='<br>temperature=1.5：<b>接受</b> → 符合 OpenAI 系参数范围';
+    }catch(e){
+      fpDetail+='<br>temperature=1.5：<b>拒绝</b> → 更像 Claude/Gemini 系后端（若中转声称是 GPT 系，值得警惕）';
+    }
+    try{
+      await textCall(c,[{role:'user',content:'hi'}],1,{logprobs:true, top_logprobs:1});
+      fpDetail+='<br>logprobs 参数：<b>支持</b> → OpenAI 兼容性完整';
+    }catch(e){
+      fpDetail+='<br>logprobs 参数：<b>不支持</b> → 中性信号（DeepSeek、Gemini 官方接口本就不支持 logprobs；仅在声称"OpenAI 官方直转"时才值得怀疑）';
+    }
+  }else{
+    fpDetail+='<br>（Anthropic 协议下跳过 OpenAI 特有参数探测）';
+  }
+  setProbe('fp', tokenAnomaly?false:null, fpDetail, tokenAnomaly?'🚨 计费异常':'🔍 指纹');
+
+  /* 总结 */
+  $('examRunning')?.remove();
+  const sum=document.createElement('div');
+  let cls,txt;
+  const total=PROBES.length;
+  if(passCount>=Math.ceil(total*0.8)){ cls='good'; txt='✅ 文本能力真实：'+passCount+'/'+total+' 项通过。该模型在区分度考题上表现符合旗舰水平，模型未降级。'; }
+  else if(passCount>=Math.ceil(total*0.6)){ cls='mid'; txt='⚠️ 存疑：'+passCount+'/'+total+' 项通过。建议隔天复测或增加考题，结合上方 API 指纹综合判断。'; }
+  else{ cls='bad'; txt='❌ 疑似降级/掺水：仅 '+passCount+'/'+total+' 项通过。旗舰模型几乎不会在这些基础题上失手，该中转可能用小模型冒充。'; }
+  if(tokenAnomaly) txt+='<br>🚨 另有计费异常（见上方 Token 指纹）：模型是真的，但账单可能被注水——能力掺水与计费掺水是两回事，需分别留证。';
+  sum.className='exam-summary '+cls;
+  sum.innerHTML=txt+'<br><span style="font-size:12px;font-weight:400;color:var(--sub)">本次接口计费约 '+totalTokens+' tokens（实际消耗远小于此，判分在本地完成、无评审消耗）· '+(c.genProto==='anthropic'?'Anthropic':'OpenAI')+' 协议 · 模型：'+esc(c.genModel)+'</span>';
+  list.insertBefore(sum, list.firstChild);
+
+  /* 写入能力记录（文本考场自己的记录区 = 通过率） */
+  try{
+    const pct = Math.round(passCount/PROBES.length*100);
+    const fpBrief = tokenAnomaly? ' · 🚨计费异常' : '';
+    current={ id:Date.now(), type:'text', model:c.genModel, judge:'本地判分', img:'',
+              score:pct, selfScore:null, judgeScore:null,
+              selfComment:'', judgeComment:(cls==='good'?'✅ ':'')+passCount+'/'+PROBES.length+' 项通过'+fpBrief,
+              comment:passCount+'/'+PROBES.length+' 项通过'+fpBrief,
+              emoji:scoreEmoji(pct), time:new Date().toLocaleString('zh-CN') };
+    history.unshift(current);
+    trimHistory();
+    persist(); renderGallery(); renderTextGallery(); renderRecords();
+  }catch(e){}
+
+  $('btnTextExam').disabled=false;
+}
+
+loadSettings();
+</script>
+</body>
+</html>

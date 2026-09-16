@@ -1,0 +1,9 @@
+# 统一换行符：仓库内一律 LF，检出时按平台转换。
+# 否则在 Windows（core.autocrlf=true）与其它机器之间复制时，整个文件都会显示为已修改。
+* text=auto
+
+# PowerShell 脚本保持 CRLF（Windows PowerShell 5.1 对 .ps1 的换行更友好）
+*.ps1 text eol=crlf
+
+# 二进制
+*.png binary

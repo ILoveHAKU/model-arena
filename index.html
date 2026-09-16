@@ -1558,10 +1558,8 @@ async function runArena(){
       throw new Error(m);
     }
 
-    // 综合评分：再审（考官）权重 80%、自评 20%；只有一边可用则取该边
-    const hasSelf=typeof self.score==='number', hasJudge=typeof judge.score==='number';
-    const finalScore = (hasSelf&&hasJudge)? Math.round(judge.score*0.8+self.score*0.2)
-                     : hasJudge? judge.score : hasSelf? self.score : null;
+    // 综合评分：自评与再审里较低的那个占 80% 权重（口径统一在 mixScore）
+    const finalScore = mixScore(self.score, judge.score);
     const emoji = scoreEmoji(finalScore);
     /* 用量展示（随记录存档，回看切换时跟着记录走） */
     const genU=j.usage? '生成 '+usageText(j.usage) : '';
@@ -1611,6 +1609,15 @@ function scoreEmoji(s){
   if(s<60) return '😢'; if(s<80) return '😕'; if(s<90) return '😐';
   if(s<95) return '😊'; return '🤩';
 }
+/* 自评与再审的合成口径：较低的那个占 80% 权重，较高的占 20%。
+   偏保守是刻意的——掺水/降智会先在某一侧掉分，让低分主导可以避免另一侧虚高把综合分拉回去。
+   只有一边有分时直接用那一边；两边都没有返回 null。
+   开考结果、记录页回看、画廊三处共用这一个函数——要调口径时只改这里，不要再各写一份。 */
+function mixScore(a,b){
+  const has = s => typeof s==='number';
+  if(has(a)&&has(b)) return Math.round(Math.min(a,b)*0.8+Math.max(a,b)*0.2);
+  return has(a)? a : has(b)? b : null;
+}
 // Token 用量格式化（OpenAI 与 Anthropic 两套字段名都兼容），全页面共用一处
 function usageText(u){
   if(!u) return '';
@@ -1634,8 +1641,7 @@ function applyVerdict(r, view){
   view = view || (r._view) || 'final';
   r._view = view;
   // 综合分只算一次、恒定不变（此前放在 pick 里，点自评/再审时综合标签会跟着显示别的分数）
-  const finalScore=(has(r.selfScore)&&has(r.judgeScore))?Math.round(r.judgeScore*0.8+r.selfScore*0.2)   // 再审 80% / 自评 20%
-                  :(has(r.selfScore)?r.selfScore:r.judgeScore);
+  const finalScore=mixScore(r.selfScore, r.judgeScore);   // 低分 80% / 高分 20%
   const pick = view==='self'? {score:r.selfScore, comment:r.selfComment, name:'自评'}
              : view==='judge'? {score:r.judgeScore, comment:r.judgeComment, name:'再审'}
              : {score:finalScore, comment:r.judgeComment||r.selfComment, name:'综合'};
@@ -1724,14 +1730,11 @@ function esc(s){ return (s===undefined||s===null)?'':String(s).replace(/[&<>"]/g
 
 /* ---------- 能力记录页 ---------- */
 function trimHistory(){ if(history.length>24) history.length=24; }
-// 综合分：自评/再审取平均，缺一边用另一边；文本记录直接用通过率
+// 综合分：自评与再审经 mixScore 合成（低分 80% / 高分 20%）；旧记录缺分则沿用旧字段兜底
 function compositeScore(h){
-  const has=s=>typeof s==='number';
   if(h.type==='text') return (typeof h.score==='number')?h.score:null;
-  if(has(h.selfScore)&&has(h.judgeScore)) return Math.round(h.judgeScore*0.8+h.selfScore*0.2);   // 再审 80% / 自评 20%
-  if(has(h.selfScore)) return h.selfScore;
-  if(has(h.judgeScore)) return h.judgeScore;
-  return (typeof h.score==='number')?h.score:null;
+  const m = mixScore(h.selfScore, h.judgeScore);
+  return m!==null? m : (typeof h.score==='number')?h.score:null;
 }
 // 记录归类：text=文本检测 / img=图片检测(有图) / fail=失败记录(无图)
 function recKind(h){

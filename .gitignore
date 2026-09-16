@@ -1,9 +1,10 @@
 # 本地浏览器 profile：约 14MB，且 Local Storage 里存着「接口配置」（含 API Key 明文）
 .edge-profile/
 
-# E2E 运行产物：日志、崩溃转储、结果文件，每次跑都会重新生成
+# E2E 运行产物：日志、崩溃转储、结果文件、页面截图，每次跑都会重新生成
 .e2e/
 _e2e-result.json
+test-browser-arena.png
 
 # 本地接口配置：可能含 API Key，不要提交（详见 README 的「配置与安全」）
 .arena-config.json
